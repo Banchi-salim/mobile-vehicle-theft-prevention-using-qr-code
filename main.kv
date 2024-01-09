@@ -1,0 +1,28 @@
+<SecureGate>:
+    orientation: 'vertical'
+    spacing: 0
+    padding: 20
+
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'C:/Users/Salim_Banchi/Downloads/bilyasanda.jpg'
+    MDGridLayout:
+        orientation: 'tb-lr'
+        rows:2
+        MDLabel:
+            text: 'Secure Gate'
+            font_size: 16
+            halign: 'center'
+
+        MDLabel:
+            text: 'Making sure vehicles are safe on campus'
+            font_size: 20
+            halign: 'center'
+
+    MDRaisedButton:
+        text: 'Get started'
+        halign: 'center'
+        on_press: root.on_button_press()
+
