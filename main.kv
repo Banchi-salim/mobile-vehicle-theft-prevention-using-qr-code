@@ -1,28 +1,99 @@
-<SecureGate>:
-    orientation: 'vertical'
-    spacing: 0
-    padding: 20
-
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'C:/Users/Salim_Banchi/Downloads/bilyasanda.jpg'
-    MDGridLayout:
+<SplashScreen>:
+    name: 'splash'
+    GridLayout:
         orientation: 'tb-lr'
-        rows:2
-        MDLabel:
-            text: 'Secure Gate'
-            font_size: 16
-            halign: 'center'
 
-        MDLabel:
-            text: 'Making sure vehicles are safe on campus'
-            font_size: 20
-            halign: 'center'
-
-    MDRaisedButton:
-        text: 'Get started'
+    MDLabel:
+        text: 'Secure Gate'
+        font_size: '20sp'
+        #color: 0, 0, 0, 0
         halign: 'center'
-        on_press: root.on_button_press()
+        pos_hint: {'center_x': 0.5, 'center_y': 0.9}
 
+    MDLabel:
+        text: 'Making sure'
+        font_size: '24sp'
+        #color: 0, 0, 0, 0
+        halign:'center'
+        pos_hint: {'center_x':0.5, 'center_y':0.8}
+
+    MDLabel:
+        text:'vehicles are safe on campus'
+        font_size: '24sp'
+        halign:'center'
+        pos_hint: {'center_x':0.5, 'center_y':0.75}
+
+    MDFlatButton:
+        text: 'Get Started'
+        pos_hint: {'center_x': 0.5, 'center_y': 0.3}
+        size_hint: (0.5, None)
+        height:dp(48)
+        md_bg_color:(0.298, 0.831, 0.443, 1)
+        on_release:
+            root.manager.current = 'login'
+
+<LoginScreen>:
+    name: 'login'
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(20)
+        padding: dp(20)
+
+
+        MDTextField:
+            id: username
+            hint_text: 'Username'
+
+        MDTextField:
+            id: password
+            hint_text: 'Password'
+            password: True
+
+        MDRaisedButton:
+            text: 'Login'
+            on_release: app.login(username.text, password.text)
+
+
+<UserScreen>:
+    name: 'user'
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(20)
+        padding: dp(20)
+
+        Label:
+            text: 'Welcome, User!'
+
+        MDRaisedButton:
+            text: 'Logout'
+            on_release: app.logout()
+
+
+<SecurityScreen>:
+    name: 'security'
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(20)
+        padding: dp(20)
+
+        Label:
+            text: 'Welcome, Security Officer!'
+
+        MDRaisedButton:
+            text: 'Logout'
+            on_release: app.logout()
+
+
+<AdminScreen>:
+    name: 'admin'
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(20)
+        padding: dp(20)
+
+        Label:
+            text: 'Welcome, Admin!'
+
+        MDRaisedButton:
+            text: 'Logout'
+            on_release: app.logout()
