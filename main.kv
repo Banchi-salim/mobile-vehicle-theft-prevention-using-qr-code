@@ -25,7 +25,7 @@
 
     MDFlatButton:
         text: 'Get Started'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.3}
+        pos_hint: {'center_x': 0.5, 'center_y': 0.1}
         size_hint: (0.5, None)
         height:dp(48)
         md_bg_color:(0.298, 0.831, 0.443, 1)
@@ -91,9 +91,112 @@
         spacing: dp(20)
         padding: dp(20)
 
-        Label:
-            text: 'Welcome, Admin!'
 
-        MDRaisedButton:
-            text: 'Logout'
-            on_release: app.logout()
+
+        MDCard:
+            size_hint: 1, None
+            height: dp(76)
+            pos_hint:{"center_x":0.5, "top":1}
+            MDLabel:
+                text: 'Welcome, Admin!'
+                halign: 'center'
+
+            #MDRaisedButton:
+                #text: 'Logout'
+                #on_release: app.logout()
+
+        BoxLayout:
+            orientation: "vertical"
+
+
+            ScrollView:
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: "8dp"
+                    spacing: "8dp"
+
+
+                    MDCard:
+                        size_hint: None, None
+                        width: dp(353)
+                        height: dp(205)
+                        pos_hint: {"center_x": 0.5, "top": 1}
+                        #elevation: 5  # Adjust the elevation as needed
+                        radius: [15, 15, 15, 15]  # Adjust the corner radius as needed
+
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            spacing: dp(10)
+
+                            MDLabel:
+                                text: 'Scan QR'
+                                halign: 'center'
+                                theme_text_color: "Secondary"
+
+                            MDIcon:
+                                icon: "qrcode-scan"  # Add the appropriate icon from KivyMD
+                                theme_text_color: "Secondary"
+
+
+
+
+                    MDCard:
+                        size_hint: 1, None
+                        height: dp(76)
+                        pos_hint:{"center_x":0.5, "top":1}
+                        MDLabel:
+                            text: "Register Vehicles"
+                            halign: 'center'
+                            #callback: app.show_registered_vehicles
+
+                    MDCard:
+                        size_hint: 1, None
+                        height: dp(76)
+                        pos_hint:{"center_x":0.5, "top":1}
+                        MDLabel:
+                            text: "Registered Vehicles"
+                            halign: 'center'
+                            #callback: app.show_registered_vehicles
+                    MDCard:
+                        size_hint: 1, None
+                        height: dp(76)
+                        pos_hint:{"center_x":0.5, "top":1}
+                        MDLabel:
+                            text: "Personnel"
+                            halign: 'center'
+                        #icon: "account-circle"
+                        #callback: app.show_personnel
+
+
+                    MDCard:
+                        size_hint: 1, None
+                        height: dp(76)
+                        pos_hint:{"center_x":0.5, "top":1}
+                        MDLabel:
+                            text: "Register Personnel"
+                            halign: 'center'
+                        #icon: "account-circle"
+                        #callback: app.show_personnel
+
+                    MDCard:
+                        size_hint: 1, None
+                        height: dp(76)
+                        pos_hint:{"center_x":0.5, "top":1}
+                        MDLabel:
+                            text: "Stolen Vehicles"
+                            halign: 'center'
+                        #icon: "car-door"
+                        #callback: app.show_stolen_vehicles
+
+
+                    MDCard:
+                        size_hint: 1, None
+                        height: dp(76)
+                        pos_hint:{"center_x":0.5, "top":1}
+                        MDLabel:
+                            text: "Report Stolen Vehicles"
+                            halign: 'center'
+                        #icon: "car-door"
+                        #callback: app.show_stolen_vehicles
