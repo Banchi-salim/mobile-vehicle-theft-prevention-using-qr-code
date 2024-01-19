@@ -1,14 +1,43 @@
-<SplashScreen>:
-    name: 'splash'
-    GridLayout:
-        orientation: 'tb-lr'
+<AdminScreen>:
+    name: "admin"
+    BoxLayout:
+        orientation: 'vertical'
+        spacing:dp(20)
+        MDCard:
+            size_hint: 1, None
+            height:dp(76)
+            padding: dp(20)
+            pos_hint: {"center_x": 0.5, "center_y": 1}
 
-    MDLabel:
-        text: 'Secure Gate'
-        font_size: '20sp'
-        #color: 0, 0, 0, 0
-        halign: 'center'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.9}
+            canvas:
+                Color:
+                    rgba: 0, 0, 0, 0  # White color for the background
+                Ellipse:
+                    pos: (self.width - self.size[0], self.y)
+                    size: self.size
+                    source: 'Untitled.png'
+
+            MDLabel:
+                text:'welcome'
+                halign:'left'
+
+        ScrollView:
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: dp(20)
+                padding: dp(20)
+                size_hint_y: 1
+
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(205)
+                    radius:dp(25)
+                    elevation:dp(0.95)
+                    padding: dp(20)
+                    on_release: app.root.current = "scan_qr"
+                    MDLabel:
+                        text:"Scan QR"
+                        halign:"center"
 
     MDLabel:
         text: 'Making sure'
@@ -17,186 +46,179 @@
         halign:'center'
         pos_hint: {'center_x':0.5, 'center_y':0.8}
 
-    MDLabel:
-        text:'vehicles are safe on campus'
-        font_size: '24sp'
-        halign:'center'
-        pos_hint: {'center_x':0.5, 'center_y':0.75}
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(76)
+                    radius:dp(25)
+                    elevation:dp(0.95)
+                    padding: dp(20)
+                    on_release: app.root.current = "view_registered_vehicles"
+                    MDLabel:
+                        text:"Registered Vehicles"
+                        halign:"center"
 
-    MDFlatButton:
-        text: 'Get Started'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.1}
-        size_hint: (0.5, None)
-        height:dp(48)
-        md_bg_color:(0.298, 0.831, 0.443, 1)
-        on_release:
-            root.manager.current = 'login'
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(76)
+                    radius:dp(25)
+                    elevation:dp(0.95)
+                    padding: dp(20)
+                    on_release: app.root.current = "register_user"
+                    MDLabel:
+                        text:"Register User"
+                        halign:"center"
 
-<LoginScreen>:
-    name: 'login'
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(76)
+                    radius:dp(25)
+                    elevation:dp(0.95)
+                    padding: dp(20)
+                    on_release: app.root.current = "register_vehicle"
+                    MDLabel:
+                        text:"Personnel"
+                        halign:"center"
+
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(76)
+                    radius:dp(25)
+                    elevation:dp(0.95)
+                    padding: dp(20)
+                    on_release: app.root.current = "register_vehicle"
+                    MDLabel:
+                        text:"Stolen Vehicles"
+                        halign:"center"
+
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(76)
+                    radius:dp(25)
+                    elevation:dp(0.95)
+                    padding: dp(20)
+                    on_release: app.root.current = "register_vehicle"
+                    MDLabel:
+                        text:"Report Stolen Vehicles"
+                        halign:"center"
+
+<ScanQRScreen>:
+    name: "scan_qr"
     BoxLayout:
         orientation: 'vertical'
-        spacing: dp(20)
-        padding: dp(20)
-
-
-        MDTextField:
-            id: username
-            hint_text: 'Username'
-
-        MDTextField:
-            id: password
-            hint_text: 'Password'
-            password: True
-
+        #Camera:
+            #id: camera
+            #resolution: (640, 480)
+            #play: True
         MDRaisedButton:
-            text: 'Login'
-            on_release: app.login(username.text, password.text)
+            text: "Scan"
+            pos_hint: {"center_x": 0.5, "center_y": 0.05}
+            on_release: root.scan_qr_code()
 
-
-<UserScreen>:
-    name: 'user'
+<RegisterVehicleScreen>:
+    name: "register_vehicle"
     BoxLayout:
         orientation: 'vertical'
-        spacing: dp(20)
-        padding: dp(20)
-
-        Label:
-            text: 'Welcome, User!'
-
+        MDTextField:
+            id: car_make
+            hint_text: "Car Make"
+            helper_text: "Enter the make of the car"
+            helper_text_mode: "on_focus"
+        MDTextField:
+            id: car_model
+            hint_text: "Car Model"
+            helper_text: "Enter the model of the car"
+            helper_text_mode: "on_focus"
+        MDTextField:
+            id: plate_number
+            hint_text: "Plate Number"
+            helper_text: "Enter the license plate number"
+            helper_text_mode: "on_focus"
         MDRaisedButton:
-            text: 'Logout'
-            on_release: app.logout()
+            text: "Upload Car Image"
+            pos_hint: {"center_x": 0.5, "center_y": 0.05}
+            on_release: root.file_manager_open()
+        MDRaisedButton:
+            text: "Register Vehicle"
+            pos_hint: {"center_x": 0.5, "center_y": 0.05}
+            on_release: root.register_vehicle()
+            
+            
+            
+<ViewRegisteredVehiclesScreen>:
+    name: "view_registered_vehicles"
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            MDList:
+                id: registered_vehicles_list
 
+    MDRaisedButton:
+        text: "Back"
+        pos_hint: {"center_x": 0.5, "center_y": 0.05}
+        on_release: root.manager.current = "admin"
+
+
+<RegisterPersonnel_UserScreen>:
+    name: "register_user"
+    ScrollView:
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: dp(20)
+            padding: dp(20)
+
+            MDTextField:
+                id: name_field
+                hint_text: "Name"
+                required: True
+
+            MDTextField:
+                id: id_field
+                hint_text: "ID"
+                required: True
+
+            MDTextField:
+                id: username_field
+                hint_text: "Username"
+                required: True
+
+            MDTextField:
+                id: password_field
+                hint_text: "Password"
+                required: True
+                password: True
+
+            MDTextField:
+                id: confirm_password_field
+                hint_text: "Confirm Password"
+                required: True
+                password: True
+
+            MDCheckbox:
+                id: security_checkbox
+                size_hint: None, None
+                size: dp(48), dp(48)
+                active: False
+                pos_hint: {'center_x': 0.5}
+
+            MDLabel:
+                text: "Security Status"
+                theme_text_color: "Primary"
+                halign: 'left'
+
+            MDRaisedButton:
+                text: "Register"
+                on_release: root.register_user()       
 
 <SecurityScreen>:
-    name: 'security'
-    BoxLayout:
-        orientation: 'vertical'
-        spacing: dp(20)
-        padding: dp(20)
+    name: "security"
+    MDLabel:
+        text: "Security Section"
+        halign: "center"
+        valign: "center"
 
-        Label:
-            text: 'Welcome, Security Officer!'
-
-        MDRaisedButton:
-            text: 'Logout'
-            on_release: app.logout()
-
-
-<AdminScreen>:
-    name: 'admin'
-    BoxLayout:
-        orientation: 'vertical'
-        spacing: dp(20)
-        padding: dp(20)
-
-
-
-        MDCard:
-            size_hint: 1, None
-            height: dp(76)
-            pos_hint:{"center_x":0.5, "top":1}
-            MDLabel:
-                text: 'Welcome, Admin!'
-                halign: 'center'
-
-            #MDRaisedButton:
-                #text: 'Logout'
-                #on_release: app.logout()
-
-        BoxLayout:
-            orientation: "vertical"
-
-
-            ScrollView:
-                BoxLayout:
-                    orientation: "vertical"
-                    size_hint_y: None
-                    height: self.minimum_height
-                    padding: "8dp"
-                    spacing: "8dp"
-
-
-                    MDCard:
-                        size_hint: None, None
-                        width: dp(353)
-                        height: dp(205)
-                        pos_hint: {"center_x": 0.5, "top": 1}
-                        #elevation: 5  # Adjust the elevation as needed
-                        radius: [15, 15, 15, 15]  # Adjust the corner radius as needed
-
-                        MDBoxLayout:
-                            orientation: 'vertical'
-                            spacing: dp(10)
-
-                            MDLabel:
-                                text: 'Scan QR'
-                                halign: 'center'
-                                theme_text_color: "Secondary"
-
-                            MDIcon:
-                                icon: "qrcode-scan"  # Add the appropriate icon from KivyMD
-                                theme_text_color: "Secondary"
-
-
-
-
-                    MDCard:
-                        size_hint: 1, None
-                        height: dp(76)
-                        pos_hint:{"center_x":0.5, "top":1}
-                        MDLabel:
-                            text: "Register Vehicles"
-                            halign: 'center'
-                            #callback: app.show_registered_vehicles
-
-                    MDCard:
-                        size_hint: 1, None
-                        height: dp(76)
-                        pos_hint:{"center_x":0.5, "top":1}
-                        MDLabel:
-                            text: "Registered Vehicles"
-                            halign: 'center'
-                            #callback: app.show_registered_vehicles
-                    MDCard:
-                        size_hint: 1, None
-                        height: dp(76)
-                        pos_hint:{"center_x":0.5, "top":1}
-                        MDLabel:
-                            text: "Personnel"
-                            halign: 'center'
-                        #icon: "account-circle"
-                        #callback: app.show_personnel
-
-
-                    MDCard:
-                        size_hint: 1, None
-                        height: dp(76)
-                        pos_hint:{"center_x":0.5, "top":1}
-                        MDLabel:
-                            text: "Register Personnel"
-                            halign: 'center'
-                        #icon: "account-circle"
-                        #callback: app.show_personnel
-
-                    MDCard:
-                        size_hint: 1, None
-                        height: dp(76)
-                        pos_hint:{"center_x":0.5, "top":1}
-                        MDLabel:
-                            text: "Stolen Vehicles"
-                            halign: 'center'
-                        #icon: "car-door"
-                        #callback: app.show_stolen_vehicles
-
-
-                    MDCard:
-                        size_hint: 1, None
-                        height: dp(76)
-                        pos_hint:{"center_x":0.5, "top":1}
-                        MDLabel:
-                            text: "Report Stolen Vehicles"
-                            halign: 'center'
-                        #icon: "car-door"
-                        #callback: app.show_stolen_vehicles
+<UserScreen>:
+    name: "user"
+    MDLabel:
+        text: "User Section"
+        halign: "center"
+        valign: "center"
