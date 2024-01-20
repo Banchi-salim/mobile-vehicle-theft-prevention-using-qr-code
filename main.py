@@ -1,4 +1,11 @@
+import os
+import sqlite3
+from pathlib import Path
+
+import requests
+from kivy.graphics import Color, Rectangle
 from kivy.lang import Builder
+from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import ScreenManager
@@ -16,11 +23,12 @@ from kivy.uix.button import Button
 from kivy.clock import Clock
 from io import BytesIO
 import qrcode
+from pyfcm import FCMNotification
 from pyzbar.pyzbar import decode
 from qrcode.image.pil import PilImage
 from PIL import Image
 from kivy.core.window import Window
-
+from kivymd.uix.toolbar import MDTopAppBar
 Builder.load_file('main.kv')
 
 
@@ -102,6 +110,8 @@ class RegisterVehicleScreen(MDScreen):
         self.exit_manager()
         # Handle the selected path (you can process the file path as needed)
         print("Selected Path:", path)
+        car_image_path = path
+        return car_image_path
 
     def file_manager_open(self):
         self.file_manager.show('/')  # Set the initial directory (you can change it)
@@ -110,32 +120,69 @@ class RegisterVehicleScreen(MDScreen):
         car_make = self.ids.car_make.text
         car_model = self.ids.car_model.text
         plate_number = self.ids.plate_number.text
-        # Process the file path (you can save it to a database, etc.)
-        car_image_path = "path/to/selected/car/image.jpg"
+        username = self.ids.username.text
+        car_image_path = self.select_path()
 
         # Validate input
-        if not car_make or not car_model or not plate_number:
+        if not car_make or not car_model or not plate_number or not username:
             self.show_error_popup("Please fill in all fields.")
             return
 
-        # Optionally, you can fetch user details based on the username
-        username = "admin"  # Replace with the actual username
+        # Fetch user details based on the username
         user_details = self.fetch_user_details(username)
 
-        # Optionally, you can save the car details to a database or perform other actions
-        # For now, let's print the registration details
-        print("User Details:", user_details)
-        print("Car Make:", car_make)
-        print("Car Model:", car_model)
-        print("Plate Number:", plate_number)
-        print("Car Image Path:", car_image_path)
+        if user_details is None:
+            self.show_error_popup("User not found.")
+            return
+
+        # Save the car details to the database
+        self.save_vehicle_details(user_details["id"], car_make, car_model, plate_number, car_image_path)
+
+        # Generate a QR code with the user and vehicle data
+        qr_data = f"User: {user_details['name']}\nCar Make: {car_make}\nCar Model: {car_model}\nPlate Number: {plate_number}"
+        self.generate_qr_code(qr_data)
 
         self.show_confirmation_popup()
 
     def fetch_user_details(self, username):
-        # Replace this with your actual user details fetching logic
-        # For now, let's simulate user details
-        return {"username": username, "name": "John Doe", "email": "john@example.com"}
+        conn = sqlite3.connect("securegate.db")
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM personnel WHERE username=?", (username,))
+        user_data = cursor.fetchone()
+
+        conn.close()
+
+        if user_data:
+            return {
+                "id": user_data[1],
+                "name": user_data[2],
+                "username": user_data[3],
+                "email": user_data[4],
+                "security_status": user_data[5],
+            }
+        else:
+            return None
+
+    def save_vehicle_details(self, user_id, car_make, car_model, plate_number, car_image_path):
+        conn = sqlite3.connect("securegate.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO vehicles (user_id, make, model, plate_number, image_path)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, car_make, car_model, plate_number, car_image_path))
+
+        conn.commit()
+        conn.close()
+
+    def generate_qr_code(self, qr_data):
+        img = qrcode.make(qr_data)
+        temp_dir = Path(os.path.join(os.environ["TEMP"], "qr_codes"))
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        qr_code_path = temp_dir / "vehicle_qr_code.png"
+        img.save(qr_code_path)
+        self.ids.qr_code_image.source = str(qr_code_path)
 
     def show_error_popup(self, message):
         content = BoxLayout(orientation="vertical")
@@ -150,6 +197,18 @@ class RegisterVehicleScreen(MDScreen):
         )
         popup.open()
 
+    def show_confirmation_popup(self):
+        content = BoxLayout(orientation="vertical")
+        content.add_widget(Image(source=self.ids.qr_code_image.source))
+
+        popup = Popup(
+            title="Confirmation",
+            content=content,
+            size_hint=(None, None),
+            size=(300, 300),
+            auto_dismiss=True,
+        )
+        popup.open()
     def show_confirmation_popup(self):
         content = BoxLayout(orientation="vertical")
         content.add_widget(MDLabel(text="Vehicle registered successfully!"))
@@ -239,19 +298,167 @@ class RegisterPersonnel_UserScreen(MDScreen):
 
 
 class ViewRegisteredPersonnelScreen(MDScreen):
-    pass
+    def on_pre_enter(self, *args):
+        # Execute query to get personnel data from the database
+        personnel_data = self.get_personnel_data()
+
+        # Access the GridLayout
+        personnel_grid = self.ids.personnel_grid
+
+        # Create and add personnel cards to the GridLayout
+        for personnel in personnel_data:
+            card = MDCard(size_hint=(1, None), height=dp(120), on_release=self.view_personnel_details)
+            box_layout = BoxLayout(orientation='horizontal')
+            box_layout.add_widget(MDLabel(text=f"Name: {personnel['name']}"))
+            box_layout.add_widget(MDLabel(text=f"ID: {personnel['id']}"))
+            box_layout.add_widget(MDLabel(text=f"Username: {personnel['username']}"))
+            card.add_widget(box_layout)
+            personnel_grid.add_widget(card)
+
+    def get_personnel_data(self):
+        # Connect to the SQLite database
+        conn = sqlite3.connect("securegate.db")
+        cursor = conn.cursor()
+
+        # Execute a query to fetch personnel data
+        cursor.execute("SELECT name, id, username FROM personnel")
+        personnel_data = [{"name": name, "id": id, "username": username} for name, id, username in cursor.fetchall()]
+
+        # Close the database connection
+        conn.close()
+
+        return personnel_data
+
+    def view_personnel_details(self, instance):
+        # Implement logic to navigate to personnel details screen
+        # For example: app.root.current = "personnel_details"
+        pass
 
 
 class ViewStolenVehiclesScreen(MDScreen):
-    pass
+
+    def on_pre_enter(self, *args):
+        # Execute query to get stolen vehicles data from the database
+        stolen_vehicles_data = self.get_stolen_vehicles_data()
+
+        # Access the GridLayout
+        stolen_vehicles_grid = self.ids.stolen_vehicles_grid
+
+        # Create and add stolen vehicles cards to the GridLayout
+        for vehicle in stolen_vehicles_data:
+            card = MDCard(size_hint=(1, None), height=dp(120), on_release=self.view_vehicle_details)
+            box_layout = BoxLayout(orientation='horizontal')
+            box_layout.add_widget(MDLabel(text=f"Make: {vehicle['vehicle_make']}"))
+            box_layout.add_widget(MDLabel(text=f"Model: {vehicle['vehicle_model']}"))
+            box_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle['plate_number']}"))
+            card.add_widget(box_layout)
+            stolen_vehicles_grid.add_widget(card)
+
+    def get_stolen_vehicles_data(self):
+        # Connect to the SQLite database
+        conn = sqlite3.connect("securegate.db")
+        cursor = conn.cursor()
+
+        # Execute a query to fetch stolen vehicles data
+        cursor.execute("SELECT vehicle_make, vehicle_model, plate_number FROM stolen_vehicles")
+        stolen_vehicles_data = [
+            {"vehicle_make": make, "vehicle_model": model, "plate_number": plate_number}
+            for make, model, plate_number in cursor.fetchall()
+        ]
+
+        # Close the database connection
+        conn.close()
+
+        return stolen_vehicles_data
+
+    def view_vehicle_details(self, instance):
+        # Implement logic to navigate to vehicle details screen
+        # For example: app.root.current = "vehicle_details"
+        pass
 
 
 class ReportStolenVehicleScreen(MDScreen):
-    pass
+    def report_theft(self):
+        # Get values from the input fields
+        make = self.ids.make_input.text
+        model = self.ids.model_input.text
+        plate_number = self.ids.plate_number_input.text
+
+        # Validate input (you can add more validation as needed)
+
+        # Insert the stolen vehicle data into the database
+        self.insert_stolen_vehicle_data(make, model, plate_number)
+
+        # Optional: Show a confirmation message or navigate to another screen
+        # For example: app.root.current = "confirmation_screen"
+
+    def insert_stolen_vehicle_data(self, make, model, plate_number):
+        # Connect to the SQLite database
+        conn = sqlite3.connect("securegate.db")
+        cursor = conn.cursor()
+
+        # Execute a query to insert stolen vehicle data
+        cursor.execute("INSERT INTO stolen_vehicles (vehicle_make, vehicle_model, plate_number) VALUES (?, ?, ?)",
+                       (make, model, plate_number))
+
+        # Commit the changes and close the database connection
+        conn.commit()
+        conn.close()
 
 
 class InAppNotificationsScreen(MDScreen):
-    pass
+    def send_push_notification(self):
+        # Get the push notification message from the admin
+        push_notification_message = "Push notification: Important update!"
+
+        # Send push notification to users
+        self.send_push_notification_to_users(push_notification_message)
+
+        # Add the new notification to the in-app notifications list
+        self.add_notification(push_notification_message)
+
+    def send_in_app_alert(self):
+        # Get the in-app alert message from the admin
+        in_app_alert_message = "In-app alert: Action required from security!"
+
+        # Send in-app alert to security
+        self.send_in_app_alert_to_security(in_app_alert_message)
+
+        # Add the new notification to the in-app notifications list
+        self.add_notification(in_app_alert_message)
+
+    def send_push_notification_to_users(self, message):
+        # Implement push notification sending to users using FCM
+        push_service = FCMNotification(api_key="YOUR_FCM_API_KEY")
+        registration_ids = ["device_registration_id_1", "device_registration_id_2"]
+        push_service.notify_multiple_devices(registration_ids=registration_ids, message_title="Notification",
+                                             message_body=message)
+
+    def send_in_app_alert_to_security(self, message):
+        # Implement in-app alert sending to security using FCM or another service
+        # For iOS, you need to use APNs. This is a simplified example.
+        security_registration_ids = ["security_device_registration_id_1", "security_device_registration_id_2"]
+        self.send_push_notification_to_users(message, registration_ids=security_registration_ids)
+
+    def send_push_notification_to_users(self, message, registration_ids):
+        # This is a simplified example. In a real-world scenario, you'd integrate with APNs for iOS.
+        # Replace 'YOUR_FCM_API_KEY' with your actual FCM API key
+        push_service = FCMNotification(api_key="YOUR_FCM_API_KEY")
+        push_service.notify_multiple_devices(registration_ids=registration_ids, message_title="Notification",
+                                             message_body=message)
+
+    def add_notification(self, message):
+        # Add the new notification to the database or wherever you store notifications
+        # (Implement this based on your actual database structure)
+        # For example: INSERT INTO notifications (user_id, message) VALUES (?, ?)
+
+        # Reload notifications to reflect the latest changes
+        self.load_notifications()
+
+    def load_notifications(self):
+        # Implement loading notifications from the database
+        # (Implement this based on your actual database structure)
+        pass
 
 
 class SecurityScreen(MDScreen):
@@ -267,6 +474,8 @@ class MyApp(MDApp):
         # Set window size to simulate a mobile device
 
         Window.size = (360, 640)
+        self.theme_cls.theme_style = 'Light'  # Set 'Light' or 'Dark' based on your preference
+        self.theme_cls.primary_palette = 'Green'
         screen_manager = self.create_screen_manager()
         return screen_manager
 
