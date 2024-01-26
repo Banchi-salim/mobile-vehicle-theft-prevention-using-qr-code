@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from pathlib import Path
-
+from fetch import get_user_credentials, fetch_user_details, save_vehicle_details
 import requests
 from kivy.graphics import Color, Rectangle
 from kivy.lang import Builder
@@ -26,12 +26,13 @@ import qrcode
 from pyfcm import FCMNotification
 from pyzbar.pyzbar import decode
 from qrcode.image.pil import PilImage
-from PIL import Image
+#from PIL import Image as img
 from kivy.core.window import Window
 from kivymd.uix.toolbar import MDTopAppBar
 Builder.load_file('main.kv')
 
-
+class LoginScreen(MDScreen):
+    pass
 class AdminScreen(MDScreen):
     pass
 
@@ -108,8 +109,7 @@ class RegisterVehicleScreen(MDScreen):
 
     def select_path(self, path):
         self.exit_manager()
-        # Handle the selected path (you can process the file path as needed)
-        print("Selected Path:", path)
+        #print("Selected Path:", path)
         car_image_path = path
         return car_image_path
 
@@ -145,14 +145,7 @@ class RegisterVehicleScreen(MDScreen):
         self.show_confirmation_popup()
 
     def fetch_user_details(self, username):
-        conn = sqlite3.connect("securegate.db")
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM personnel WHERE username=?", (username,))
-        user_data = cursor.fetchone()
-
-        conn.close()
-
+        user_data = fetch_user_details(username)
         if user_data:
             return {
                 "id": user_data[1],
@@ -229,9 +222,11 @@ class ViewRegisteredVehiclesScreen(MDScreen):
 
     def load_registered_vehicles(self):
         # Fetch registered vehicles from the database (replace with your actual logic)
+
+
         registered_vehicles = [
-            {"car_make": "Toyota", "car_model": "Camry", "plate_number": "ABC123"},
-            {"car_make": "Honda", "car_model": "Civic", "plate_number": "XYZ789"},
+            {"car_make": "Toyota", "car_model": "Camry", "plate_number": "ABC123", "path": 'v1.jpg'},
+            {"car_make": "Honda", "car_model": "Civic", "plate_number": "XYZ789", "path": 'v2.jpg'},
             # Add more vehicles as needed
         ]
 
@@ -241,14 +236,30 @@ class ViewRegisteredVehiclesScreen(MDScreen):
         # Add registered vehicles to the list
         for vehicle_data in registered_vehicles:
             card = MDCard(
-                orientation='vertical',
+                orientation='horizontal',  # Set orientation to horizontal
+                padding="20dp",
                 size_hint_y=None,
-                height="120dp"
+                height="120dp",
             )
 
-            card.add_widget(MDLabel(text=f"Car Make: {vehicle_data['car_make']}"))
-            card.add_widget(MDLabel(text=f"Car Model: {vehicle_data['car_model']}"))
-            card.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['plate_number']}"))
+            # Left side of the card
+            left_layout = BoxLayout(orientation='vertical')
+            left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['car_make']}"))
+            left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['car_model']}"))
+            left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['plate_number']}"))
+
+            # Right side of the card
+            right_layout = BoxLayout(size_hint_x=None, width="56dp")
+            image = Image(
+                source=vehicle_data['path'],  # Replace with the actual path or URL of your image
+                size_hint=(None, None),
+                size=("56dp", "56dp"),
+            )
+            right_layout.add_widget(image)
+
+            # Add left and right layouts to the card
+            card.add_widget(left_layout)
+            card.add_widget(right_layout)
 
             self.ids.registered_vehicles_list.add_widget(card)
 
@@ -470,6 +481,9 @@ class UserScreen(MDScreen):
 
 
 class MyApp(MDApp):
+    def on_start(self):
+        # Initialize current_user_type attribute
+        self.current_user_type = None
     def build(self):
         # Set window size to simulate a mobile device
 
@@ -482,6 +496,7 @@ class MyApp(MDApp):
     def create_screen_manager(self):
         screen_manager = ScreenManager()
 
+        Login_screen = LoginScreen()
         admin_screen = AdminScreen()
         scan_qr_screen = ScanQRScreen()
         register_vehicle_screen = RegisterVehicleScreen()
@@ -494,7 +509,7 @@ class MyApp(MDApp):
         security_screen = SecurityScreen()
         user_screen = UserScreen()
 
-
+        screen_manager.add_widget(Login_screen)
         screen_manager.add_widget(admin_screen)
         screen_manager.add_widget(security_screen)
         screen_manager.add_widget(user_screen)
@@ -509,6 +524,33 @@ class MyApp(MDApp):
 
         return screen_manager
 
+    def verify_login(self, username, password):
+        try:
+            # Call the function to get user credentials
+            credentials = get_user_credentials(username, password)
 
+            if credentials:
+                # Check the 'usertype' to determine the appropriate screen
+                usertype = credentials.get('usertype')
+                self.current_user_type = usertype
+                if usertype == 'admin':
+                    self.root.current = 'admin'
+                elif usertype == 'personnel':
+                    self.root.current = 'admin'
+                elif usertype == 'user':
+                    self.root.current = 'user'
+            else:
+                print("Invalid username or password.")
+
+        except Exception as e:
+            print(f"Error during login verification: {str(e)}")
+
+    def go_back(self):
+        if self.current_user_type == 'admin':
+            self.root.current = 'admin'
+        elif self.current_user_type == 'personnel':
+            self.root.current = 'security'
+        elif self.current_user_type == 'user':
+            self.root.current = 'user'
 if __name__ == "__main__":
     MyApp().run()
