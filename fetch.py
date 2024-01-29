@@ -1,4 +1,8 @@
 import mysql.connector
+import qrcode
+from MySQLdb import Error
+from PIL import Image
+from io import BytesIO
 
 def connect():
     db_config = {
@@ -9,6 +13,7 @@ def connect():
         'raise_on_warnings': True,
     }
     return mysql.connector.connect(**db_config)
+
 def get_user_credentials(username, password):
 
 
@@ -34,30 +39,52 @@ def get_user_credentials(username, password):
     conn.close()
     return None
 
-def fetch_user_details(username):
+def fetch_user_details(user_id):
     conn = connect()
     cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM personnel WHERE username=%s", (username,))
+    tables = ['admin', 'personnel', 'user']
+    #for table in tables:
+    cursor.execute("SELECT * FROM user WHERE user_id = %s", (user_id,))
     user_data = cursor.fetchone()
 
-    conn.close()
+    if user_data:
+        conn.close()
+        return user_data
 
-    return user_data
+    #conn.close()
+    #return None
+
 
 def save_vehicle_details(user_id, car_make, car_model, plate_number, car_image_path):
     conn = connect()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
-    # Convert image to binary data
-    with open(car_image_path, "rb") as image_file:
-        image_binary = image_file.read()
+    # Generate QR code
+    qr_data = f"User ID: {user_id}\nCar Make: {car_make}\nCar Model: {car_model}\nPlate Number: {plate_number}"
+    qr_code = qrcode.make(qr_data)
 
-    cursor.execute("""
-        INSERT INTO vehicles (user_id, make, model, plate_number, image_data)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (user_id, car_make, car_model, plate_number, image_binary))
+    # Convert the QR code image to bytes
+    qr_code_bytes = BytesIO()
+    qr_code.save(qr_code_bytes)
+    qr_code_blob = qr_code_bytes.getvalue()
+    try:
+        # Convert the vehicle image to bytes
+        with open(car_image_path, 'rb') as image_file:
+            vehicle_image_blob = image_file.read()
 
-    conn.commit()
-    conn.close()
+        # Insert data into the vehicles table
+        cursor.execute("""
+            INSERT INTO vehicle (user_id, make, model, registration_number, vehicle_image, qr_code_image)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (user_id, car_make, car_model, plate_number, vehicle_image_blob, qr_code_blob))
+
+        connect().commit()
+
+    except Error as e:
+        print(f"Error: {e}")
+
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
 

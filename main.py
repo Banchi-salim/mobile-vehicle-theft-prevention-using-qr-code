@@ -1,13 +1,13 @@
 import os
 import sqlite3
 from pathlib import Path
+from kivy.properties import ObjectProperty
+from kivy.uix.filechooser import FileChooser
+import fetch
 from fetch import get_user_credentials, fetch_user_details, save_vehicle_details
-import requests
-from kivy.graphics import Color, Rectangle
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
 from kivymd.uix.card import MDCard
@@ -97,85 +97,71 @@ class ScanQRScreen(MDScreen):
         )
         popup.open()
 class RegisterVehicleScreen(MDScreen):
+
     def __init__(self, **kwargs):
-        super(RegisterVehicleScreen, self).__init__(**kwargs)
+        super().__init__(**kwargs)
+        self.name = 'register_vehicle'
         self.file_manager = MDFileManager(
             exit_manager=self.exit_manager,
             select_path=self.select_path,
+            preview=True,
         )
+        self.v_img = ''
+
+    def file_manager_open(self):
+        self.file_manager.show('/')
 
     def exit_manager(self, *args):
         self.file_manager.close()
 
     def select_path(self, path):
-        self.exit_manager()
-        #print("Selected Path:", path)
-        car_image_path = path
-        return car_image_path
-
-    def file_manager_open(self):
-        self.file_manager.show('/')  # Set the initial directory (you can change it)
+        self.file_manager.close()
+        self.v_img = path
+        print(self.v_img)
+        return self.v_img
 
     def register_vehicle(self):
         car_make = self.ids.car_make.text
         car_model = self.ids.car_model.text
         plate_number = self.ids.plate_number.text
-        username = self.ids.username.text
-        car_image_path = self.select_path()
+        user_id = self.ids.user_id.text
+        car_image_path = self.v_img
 
         # Validate input
-        if not car_make or not car_model or not plate_number or not username:
+        if not car_make or not car_model or not plate_number or not user_id:
             self.show_error_popup("Please fill in all fields.")
             return
 
         # Fetch user details based on the username
-        user_details = self.fetch_user_details(username)
+        user_details = fetch_user_details(user_id)
+        print(user_details)
 
         if user_details is None:
             self.show_error_popup("User not found.")
             return
 
         # Save the car details to the database
-        self.save_vehicle_details(user_details["id"], car_make, car_model, plate_number, car_image_path)
+        self.save_vehicle_details(user_details["user_id"], car_make, car_model, plate_number, car_image_path)
 
-        # Generate a QR code with the user and vehicle data
+        """# Generate a QR code with the user and vehicle data
         qr_data = f"User: {user_details['name']}\nCar Make: {car_make}\nCar Model: {car_model}\nPlate Number: {plate_number}"
-        self.generate_qr_code(qr_data)
+        self.generate_qr_code(qr_data)"""
 
         self.show_confirmation_popup()
 
-    def fetch_user_details(self, username):
-        user_data = fetch_user_details(username)
+    """def fetch_user_details(self, user_id):
+        user_data = fetch_user_details(user_id)
         if user_data:
             return {
-                "id": user_data[1],
-                "name": user_data[2],
-                "username": user_data[3],
-                "email": user_data[4],
-                "security_status": user_data[5],
+                "user_id": user_data[3],
+                "name": user_data[1],
+                "username": user_data[2],
             }
         else:
-            return None
+            return None"""
 
     def save_vehicle_details(self, user_id, car_make, car_model, plate_number, car_image_path):
-        conn = sqlite3.connect("securegate.db")
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            INSERT INTO vehicles (user_id, make, model, plate_number, image_path)
-            VALUES (?, ?, ?, ?, ?)
-        """, (user_id, car_make, car_model, plate_number, car_image_path))
-
-        conn.commit()
-        conn.close()
-
-    def generate_qr_code(self, qr_data):
-        img = qrcode.make(qr_data)
-        temp_dir = Path(os.path.join(os.environ["TEMP"], "qr_codes"))
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        qr_code_path = temp_dir / "vehicle_qr_code.png"
-        img.save(qr_code_path)
-        self.ids.qr_code_image.source = str(qr_code_path)
+        fetch.save_vehicle_details(user_id, car_make, car_model, plate_number, car_image_path)
 
     def show_error_popup(self, message):
         content = BoxLayout(orientation="vertical")
@@ -187,6 +173,7 @@ class RegisterVehicleScreen(MDScreen):
             size_hint=(None, None),
             size=(300, 150),
             auto_dismiss=True,
+            #template="PopupError",
         )
         popup.open()
 
@@ -200,6 +187,7 @@ class RegisterVehicleScreen(MDScreen):
             size_hint=(None, None),
             size=(300, 300),
             auto_dismiss=True,
+            #template="FloatingWindow",
         )
         popup.open()
     def show_confirmation_popup(self):
@@ -212,6 +200,7 @@ class RegisterVehicleScreen(MDScreen):
             size_hint=(None, None),
             size=(300, 150),
             auto_dismiss=True,
+            #template="FloatingWindow",
         )
         popup.open()
 

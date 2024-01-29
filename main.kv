@@ -156,10 +156,6 @@
             text: "Scan"
             on_release: root.scan_qr_code()
 
-
-
-
-
 <RegisterVehicleScreen>:
     name: "register_vehicle"
     FloatLayout:
@@ -170,11 +166,15 @@
             md_bg_color: 0.898, 0.972, 0.905, 1
             left_action_items: [["arrow-left", lambda x: app.go_back()]]
 
-
         BoxLayout:
             orientation: 'vertical'
-            spacing:dp(20)
-            pos_hint: {"center_x": 0.5, "center_y": 0.85}
+            pos_hint: {"center_x": 0.5, "center_y": 0.7}
+            spacing: dp(20)
+            MDTextField:
+                id: user_id
+                hint_text: "user_id"
+                helper_text: "Enter car owner id"
+                helper_text_mode: "on_focus"
             MDTextField:
                 id: car_make
                 hint_text: "Car Make"
@@ -191,25 +191,27 @@
                 helper_text: "Enter the license plate number"
                 helper_text_mode: "on_focus"
 
-            MDIconButton:
-                icon: 'image-plus'  # Icon for adding an image
-                pos_hint: {'center_x': 0.2}
-                user_font_size: '64sp'  # Adjust the icon size as needed
-                on_release: root.file_manager_open()
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint: None, None
+                height: dp(50)
+                width: dp(200)
 
-                 MDTooltip:
-                    text: 'Add Vehicle Image'  # Tooltip text for the button
-                    pos: 'right'
-                    padding: '8dp
+                MDIconButton:
+                    icon: 'image-plus'
+                    user_font_size: '64sp'
+                    on_release: root.file_manager_open()
 
+                MDLabel:
+                    text: 'Add Vehicle Image'
+                    theme_text_color: "Secondary"
+                    halign: 'right'
+                    valign: 'center'
 
             MDRaisedButton:
                 text: "Register"
-                pos_hint: {"center_x": 0.5, "center_y": 0.05}
+                pos_hint: {"center_x": 0.5, "center_y": 0.9}
                 on_release: root.register_vehicle()
-
-
-
 
 
 <ViewRegisteredVehiclesScreen>:
