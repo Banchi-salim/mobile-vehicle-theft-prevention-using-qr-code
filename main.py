@@ -1,8 +1,7 @@
 import os
 import sqlite3
-from pathlib import Path
-from kivy.properties import ObjectProperty
-from kivy.uix.filechooser import FileChooser
+from kivy.core.image import Image as CoreImage
+from kivy.core.image import ImageLoader, Texture
 import fetch
 from fetch import get_user_credentials, fetch_user_details, save_vehicle_details
 from kivy.lang import Builder
@@ -210,50 +209,76 @@ class ViewRegisteredVehiclesScreen(MDScreen):
         self.load_registered_vehicles()
 
     def load_registered_vehicles(self):
-        # Fetch registered vehicles from the database (replace with your actual logic)
-
-
-        registered_vehicles = [
-            {"car_make": "Toyota", "car_model": "Camry", "plate_number": "ABC123", "path": 'v1.jpg'},
-            {"car_make": "Honda", "car_model": "Civic", "plate_number": "XYZ789", "path": 'v2.jpg'},
-            # Add more vehicles as needed
-        ]
-
         # Clear existing entries in the list
         self.ids.registered_vehicles_list.clear_widgets()
+        registered_vehicles = fetch.fetch_vehicle_details()
+        print(registered_vehicles)
 
-        # Add registered vehicles to the list
-        for vehicle_data in registered_vehicles:
-            card = MDCard(
-                orientation='horizontal',  # Set orientation to horizontal
-                padding="20dp",
-                size_hint_y=None,
-                height="120dp",
-            )
+        if registered_vehicles:
+            for vehicle_data in registered_vehicles:
+                card = MDCard(
+                    orientation='horizontal',
+                    padding="20dp",
+                    spacing="20dp",
+                    size_hint=(None, None),
+                    height="200dp",
+                    width="300dp",
+                    pos_hint={"center_x":.5}
+                )
 
-            # Left side of the card
-            left_layout = BoxLayout(orientation='vertical')
-            left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['car_make']}"))
-            left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['car_model']}"))
-            left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['plate_number']}"))
+                left_layout = BoxLayout(orientation='vertical', size_hint_x=0.7)
+                left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['make']}"))
+                left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['model']}"))
+                left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['registration_number']}"))
 
-            # Right side of the card
-            right_layout = BoxLayout(size_hint_x=None, width="56dp")
-            image = Image(
-                source=vehicle_data['path'],  # Replace with the actual path or URL of your image
-                size_hint=(None, None),
-                size=("56dp", "56dp"),
-            )
-            right_layout.add_widget(image)
+                # Right side of the card
+                right_layout = BoxLayout(orientation = "vertical", size_hint_x=None, width="100dp")
+                # Convert image bytes to source
+                vehicle_image_bytes = BytesIO(vehicle_data['vehicle_image']).read()
+                vehicle_image_bytes_1 = BytesIO(vehicle_data['qr_code_image']).read()
 
-            # Add left and right layouts to the card
-            card.add_widget(left_layout)
-            card.add_widget(right_layout)
+                # Use kivy.core.image.Image to load the image
+                vehicle_image = CoreImage(BytesIO(vehicle_image_bytes), ext='png').texture
+                qr_image = CoreImage(BytesIO(vehicle_image_bytes_1), ext='png').texture
 
-            self.ids.registered_vehicles_list.add_widget(card)
+                # Create Kivy Image
+                image_widget = Image(texture=vehicle_image, size=("56dp", "56dp"))
+                image_widget_1 = Image(texture=qr_image, size=("56dp", "56dp"))
+
+                right_layout.add_widget(image_widget)
+                right_layout.add_widget(image_widget_1)
+
+
+
+                card.add_widget(left_layout)
+                card.add_widget(right_layout)
+
+                self.ids.registered_vehicles_list.add_widget(card)
 
 
 class RegisterPersonnel_UserScreen(MDScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.name = 'register_user'
+        self.file_manager = MDFileManager(
+            exit_manager=self.exit_manager,
+            select_path=self.select_path,
+            preview=True,
+        )
+        self.u_img = ''
+
+    def file_manager_open(self):
+        self.file_manager.show('/')
+
+    def exit_manager(self, *args):
+        self.file_manager.close()
+
+    def select_path(self, path):
+        self.file_manager.close()
+        self.u_img = path
+        print(self.u_img)
+        return self.u_img
+
     def register_user(self):
         # Retrieve input values
         name = self.ids.name_field.text
@@ -261,149 +286,190 @@ class RegisterPersonnel_UserScreen(MDScreen):
         username = self.ids.username_field.text
         password = self.ids.password_field.text
         confirm_password = self.ids.confirm_password_field.text
-        security_status = self.ids.security_checkbox.active
+        security_status = self.ids.user_type.text
+        user_img = self.u_img
 
         # Validate input (you may add more validation logic)
-        if not all([name, user_id, username, password, confirm_password]):
+        if not all([name, user_id, username, password, confirm_password, security_status,]):
             self.show_error_message("All fields are required.")
             return
 
         if password != confirm_password:
             self.show_error_message("Passwords do not match.")
             return
+        if all([name, user_id, username, password, confirm_password, security_status]) and password == confirm_password:
+            fetch.insert_user_data(name, user_id, username, password, security_status, user_img)
 
-        # Store user data (replace with your database or backend logic)
-        user_data = {
-            "name": name,
-            "id": user_id,
-            "username": username,
-            "password": password,
-            "security_status": security_status,
-        }
-
-        # Add your logic to store user_data in the database or backend
 
         # Optionally, show a success message or navigate to another screen
 
-        self.show_success_message("User registered successfully.")
+        self.show_success_popup("User registered successfully.")
         self.manager.current = "admin"
 
-    def show_error_message(self, message):
-        # Add your logic to display an error message (toast, popup, etc.)
-        pass
+    def show_error_popup(self, message):
+        content = BoxLayout(orientation="vertical")
+        content.add_widget(MDLabel(text=message))
 
-        def show_success_message(self, message):
-            # Add your logic to display a success message (toast, popup, etc.)
-            pass
+        popup = Popup(
+            title="Error",
+            content=content,
+            size_hint=(None, None),
+            size=(300, 150),
+            auto_dismiss=True,
+            # template="PopupError",
+        )
+        popup.open()
+
+    def show_success_popup(self,  message):
+        content = BoxLayout(orientation="vertical")
+        content.add_widget(MDLabel(text=message))
+
+        popup = Popup(
+            title="Confirmation",
+            content=content,
+            size_hint=(None, None),
+            size=(300, 300),
+            auto_dismiss=True,
+            # template="FloatingWindow",
+        )
+        popup.open()
 
 
 class ViewRegisteredPersonnelScreen(MDScreen):
     def on_pre_enter(self, *args):
-        # Execute query to get personnel data from the database
-        personnel_data = self.get_personnel_data()
+        self.load_personnel()
 
-        # Access the GridLayout
-        personnel_grid = self.ids.personnel_grid
 
-        # Create and add personnel cards to the GridLayout
-        for personnel in personnel_data:
-            card = MDCard(size_hint=(1, None), height=dp(120), on_release=self.view_personnel_details)
-            box_layout = BoxLayout(orientation='horizontal')
-            box_layout.add_widget(MDLabel(text=f"Name: {personnel['name']}"))
-            box_layout.add_widget(MDLabel(text=f"ID: {personnel['id']}"))
-            box_layout.add_widget(MDLabel(text=f"Username: {personnel['username']}"))
-            card.add_widget(box_layout)
-            personnel_grid.add_widget(card)
+    def load_personnel(self):
+        # Clear existing entries in the list
+        self.ids.registered_personnel.clear_widgets()
+        personnels = fetch.fetch_personnel_details()
+        print(personnels)
 
-    def get_personnel_data(self):
-        # Connect to the SQLite database
-        conn = sqlite3.connect("securegate.db")
-        cursor = conn.cursor()
+        if personnels:
+            for personnel in personnels:
+                card = MDCard(
+                    orientation='horizontal',
+                    padding="20dp",
+                    spacing="20dp",
+                    size_hint=(None, None),
+                    height="150dp",
+                    width="300dp",
+                    pos_hint={"center_x": .5}
+                )
 
-        # Execute a query to fetch personnel data
-        cursor.execute("SELECT name, id, username FROM personnel")
-        personnel_data = [{"name": name, "id": id, "username": username} for name, id, username in cursor.fetchall()]
+                left_layout = BoxLayout(orientation='vertical', size_hint_x=0.7)
+                left_layout.add_widget(MDLabel(text=f"Name: {personnel['name']}"))
+                left_layout.add_widget(MDLabel(text=f"ID: {personnel['id']}"))
+                left_layout.add_widget(MDLabel(text=f"Username: {personnel['username']}"))
 
-        # Close the database connection
-        conn.close()
+                # Right side of the card
+                right_layout = BoxLayout(orientation="vertical", size_hint_x=None, width="100dp")
+                # Convert image bytes to source
+                personnel_image_bytes = BytesIO(personnel['user_image']).read()
 
-        return personnel_data
 
-    def view_personnel_details(self, instance):
-        # Implement logic to navigate to personnel details screen
-        # For example: app.root.current = "personnel_details"
-        pass
+                # Use kivy.core.image.Image to load the image
+                security_image = CoreImage(BytesIO(personnel_image_bytes), ext='png').texture
 
+
+                # Create Kivy Image
+                image_widget = Image(texture=security_image, size=("56dp", "150dp"))
+                right_layout.add_widget(image_widget)
+
+                card.add_widget(left_layout)
+                card.add_widget(right_layout)
+
+                self.ids.registered_personnel.add_widget(card)
 
 class ViewStolenVehiclesScreen(MDScreen):
 
     def on_pre_enter(self, *args):
         # Execute query to get stolen vehicles data from the database
-        stolen_vehicles_data = self.get_stolen_vehicles_data()
+        self.get_stolen_vehicles_data()
 
         # Access the GridLayout
-        stolen_vehicles_grid = self.ids.stolen_vehicles_grid
-
-        # Create and add stolen vehicles cards to the GridLayout
-        for vehicle in stolen_vehicles_data:
-            card = MDCard(size_hint=(1, None), height=dp(120), on_release=self.view_vehicle_details)
-            box_layout = BoxLayout(orientation='horizontal')
-            box_layout.add_widget(MDLabel(text=f"Make: {vehicle['vehicle_make']}"))
-            box_layout.add_widget(MDLabel(text=f"Model: {vehicle['vehicle_model']}"))
-            box_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle['plate_number']}"))
-            card.add_widget(box_layout)
-            stolen_vehicles_grid.add_widget(card)
-
     def get_stolen_vehicles_data(self):
-        # Connect to the SQLite database
-        conn = sqlite3.connect("securegate.db")
-        cursor = conn.cursor()
+        self.ids.stolen_vehicles_grid.clear_widgets()
+        stolen_vehicles_data = fetch.get_stolen()
 
-        # Execute a query to fetch stolen vehicles data
-        cursor.execute("SELECT vehicle_make, vehicle_model, plate_number FROM stolen_vehicles")
-        stolen_vehicles_data = [
-            {"vehicle_make": make, "vehicle_model": model, "plate_number": plate_number}
-            for make, model, plate_number in cursor.fetchall()
-        ]
+        for vehicle_data in stolen_vehicles_data:
+            card = MDCard(
+                orientation='horizontal',
+                padding="20dp",
+                spacing="20dp",
+                size_hint=(None, None),
+                height="200dp",
+                width="300dp",
+                pos_hint={"center_x": .5}
+            )
 
-        # Close the database connection
-        conn.close()
 
-        return stolen_vehicles_data
 
-    def view_vehicle_details(self, instance):
-        # Implement logic to navigate to vehicle details screen
-        # For example: app.root.current = "vehicle_details"
-        pass
+            left_layout = BoxLayout(orientation='vertical', size_hint_x=0.7)
+            left_layout.add_widget(MDLabel(text=f"Car owner: {vehicle_data['name']}"))
+            left_layout.add_widget(MDLabel(text=f"User ID: {vehicle_data['user_id']}"))
+            left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['make']}"))
+            left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['model']}"))
+            left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['registration_number']}"))
+
+            # Right side of the card
+            right_layout = BoxLayout(orientation="vertical", size_hint_x=None, width="100dp")
+            # Convert image bytes to source
+            vehicle_image_bytes = BytesIO(vehicle_data['vehicle_image']).read()
+
+            # Use kivy.core.image.Image to load the image
+            vehicle_image = CoreImage(BytesIO(vehicle_image_bytes), ext='png').texture
+
+
+            # Create Kivy Image
+            image_widget = Image(texture=vehicle_image, size=("56dp", "56dp"))
+            right_layout.add_widget(image_widget)
+
+
+            card.add_widget(left_layout)
+            card.add_widget(right_layout)
+            self.ids.stolen_vehicles_grid.add_widget(card)
+
 
 
 class ReportStolenVehicleScreen(MDScreen):
-    def report_theft(self):
-        # Get values from the input fields
-        make = self.ids.make_input.text
-        model = self.ids.model_input.text
-        plate_number = self.ids.plate_number_input.text
+    def report_theft(self, *args):
+        user_id = self.ids.user_id.text
+        plate_number = self.ids.plate_number.text
 
-        # Validate input (you can add more validation as needed)
+        # Validate input (you may add more validation logic)
+        if not user_id:
+            self.show_error_message("Please enter User ID.")
+            return
 
-        # Insert the stolen vehicle data into the database
-        self.insert_stolen_vehicle_data(make, model, plate_number)
+        # Fetch vehicle details by user_id
+        vehicle_details = fetch.fetch_stolen_vehicle(user_id, plate_number)
+        #print(vehicle_details)
+        v_make = vehicle_details['make']
+        v_model = vehicle_details['model']
+        plate_number = vehicle_details['registration_number']
+        user_id = vehicle_details['user_id']
 
-        # Optional: Show a confirmation message or navigate to another screen
-        # For example: app.root.current = "confirmation_screen"
+        if not vehicle_details:
+            self.show_error_message("No vehicle details found for the provided User ID.")
+            return
 
-    def insert_stolen_vehicle_data(self, make, model, plate_number):
-        # Connect to the SQLite database
-        conn = sqlite3.connect("securegate.db")
-        cursor = conn.cursor()
+        elif vehicle_details:
+            fetch.insert_stolen_vehicle(v_make, v_model, plate_number, user_id)
+            # Optionally, show a success message or navigate to another screen
+            self.show_success_message("Vehicle theft reported successfully.")
+        # Display vehicle details
+        #self.vehicle_info_label.text = f"Vehicle Information:\n{vehicle_details}"
 
-        # Execute a query to insert stolen vehicle data
-        cursor.execute("INSERT INTO stolen_vehicles (vehicle_make, vehicle_model, plate_number) VALUES (?, ?, ?)",
-                       (make, model, plate_number))
+    def show_success_message(self, message):
+        popup = Popup(title='Success', content=MDLabel(text=message), size_hint=(None, None), size=(300, 150))
+        popup.open()
 
-        # Commit the changes and close the database connection
-        conn.commit()
-        conn.close()
+    def show_error_message(self, message):
+        popup = Popup(title='Error', content=MDLabel(text=message), size_hint=(None, None), size=(300, 150))
+        popup.open()
+
 
 
 class InAppNotificationsScreen(MDScreen):

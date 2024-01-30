@@ -10,8 +10,9 @@
             id: username_input
             hint_text: 'Username'
             multiline: False
-            size_hint_y:None
+            size_hint:None, None
             height:dp(50)
+            width:dp(150)
 
         MDTextField:
             mode:'round'
@@ -134,7 +135,7 @@
                     radius:dp(25)
                     elevation:dp(0.15)
                     padding: dp(20)
-                    on_release: app.root.current = "register_vehicle"
+                    on_release: app.root.current = "report_theft"
                     MDLabel:
                         text:"Report Stolen Vehicles"
                         halign:"center"
@@ -232,10 +233,9 @@
                 height: self.minimum_height
                 MDList:
                     spacing: dp(20)
+                    padding: dp(20)
                     id: registered_vehicles_list
-
-
-
+                    pos_hint: {"center_x":.5}
 
 
 <RegisterPersonnel_UserScreen>:
@@ -257,6 +257,17 @@
                 orientation: 'vertical'
                 spacing: dp(20)
                 padding: dp(20)
+
+                MDIconButton:
+                    icon: 'image-plus'
+                    user_font_size: '64sp'
+                    on_release: root.file_manager_open()
+
+                MDLabel:
+                    text: 'Add user Image'
+                    theme_text_color: "Secondary"
+                    halign: 'right'
+                    valign: 'center'
 
                 MDTextField:
                     id: name_field
@@ -285,8 +296,15 @@
                     required: True
                     password: True
 
+                MDTextField:
+                    id: user_type
+                    hint_text: "select User type(user or personnel)"
+                    required: True
+
+
+
                 MDRaisedButton:
-                    text: "Reister"
+                    text: "Register"
                     on_release: root.register_user()
 
 
@@ -302,22 +320,23 @@
             pos_hint: {"center_x": 0.5, "center_y": 0.97}
             md_bg_color: 0.898, 0.972, 0.905, 1
             left_action_items: [["arrow-left", lambda x: app.go_back()]]
+
         BoxLayout:
             orientation: 'vertical'
             spacing: dp(20)
             padding: dp(20)
-
-            Widget:
-                size_hint_y: None
-                height: dp(80)
+            pos_hint: {"top": 0.9}
+            size_hint_y: 0.8
 
             ScrollView:
-                GridLayout:
-                    cols: 1
-                    spacing: dp(20)
+                BoxLayout:
                     size_hint_y: None
                     height: self.minimum_height
-                    id: personnel_grid  # Reference to the GridLayout for dynamically adding cards
+                    MDList:
+                        spacing: dp(20)
+                        padding: dp(20)
+                        id: registered_personnel
+                        pos_hint: {"center_x":.5}
 
 
 <ViewStolenVehiclesScreen>:
@@ -363,30 +382,24 @@
             spacing: dp(20)
             padding: dp(20)
 
-            Widget:
-                size_hint_y: None
-                height: dp(80)
+            MDTextField:
+                mode: 'round'
+                id: user_id
+                hint_text: 'User Id'
+                helper_text: "Enter User ID"
+                helper_text_mode: "on_focus"
+                multiline: False
+                size_hint:None, None
+                height:dp(50)
+                width:dp(150)
 
             MDTextField:
-                id: make_input
-                hint_text: "Vehicle Make"
-                size_hint_x: None
-                width: dp(200)
-                mode: "rectangle"
-
-            MDTextField:
-                id: model_input
-                hint_text: "Vehicle Model"
-                size_hint_x: None
-                width: dp(200)
-                mode: "rectangle"
-
-            MDTextField:
-                id: plate_number_input
+                mode: 'round'
+                id: plate_number
                 hint_text: "Plate Number"
-                size_hint_x: None
-                width: dp(200)
-                mode: "rectangle"
+                multiline: False
+                helper_text: "Enter the license plate number"
+                helper_text_mode: "on_focus"
 
             MDRaisedButton:
                 text: "Report"
@@ -420,9 +433,6 @@
             text: "send in app"
 
 
-
-
-
 <PushNotificationPopup>:
     title: "Send Push Notification"
     size_hint: None, None
@@ -441,9 +451,6 @@
             text: "send"
             on_release: root.send_push_notification()
 
-
-
-
 <InAppAlertPopup>:
     title: "Send In-App Alert"
     size_hint: None, None
@@ -461,9 +468,6 @@
         MDRaisedButton:
             text: "Tonal"
             on_release: root.send_in_app_alert()
-
-
-
 
 
 <SecurityScreen>:
@@ -546,8 +550,6 @@
                     MDLabel:
                         text:"Report Stolen Vehicle"
                         halign:"center"
-
-
 
 <UserScreen>:
     name: "user"
