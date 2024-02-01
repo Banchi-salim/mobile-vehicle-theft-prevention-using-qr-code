@@ -1,7 +1,12 @@
 import os
-import sqlite3
+from kivy.clock import Clock
+import mysql.connector
 from kivy.core.image import Image as CoreImage
 from kivy.core.image import ImageLoader, Texture
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.list import ThreeLineListItem
+from kivymd.uix.menu import MDDropdownMenu
+
 import fetch
 from fetch import get_user_credentials, fetch_user_details, save_vehicle_details
 from kivy.lang import Builder
@@ -25,13 +30,17 @@ import qrcode
 from pyfcm import FCMNotification
 from pyzbar.pyzbar import decode
 from qrcode.image.pil import PilImage
-#from PIL import Image as img
+# from PIL import Image as img
 from kivy.core.window import Window
 from kivymd.uix.toolbar import MDTopAppBar
+
 Builder.load_file('main.kv')
+
 
 class LoginScreen(MDScreen):
     pass
+
+
 class AdminScreen(MDScreen):
     pass
 
@@ -43,7 +52,6 @@ class ScanQRScreen(MDScreen):
 
     def scan_qr_code(self):
         image_path = "C:/Users/Salim_Banchi/PycharmProjects/mobile-vehicle-theft-prevention-using-qr-code/untitled.png"
-
 
         try:
             decoded_qr = self.decode_qr_code(image_path)
@@ -95,6 +103,8 @@ class ScanQRScreen(MDScreen):
             auto_dismiss=True,
         )
         popup.open()
+
+
 class RegisterVehicleScreen(MDScreen):
 
     def __init__(self, **kwargs):
@@ -172,7 +182,7 @@ class RegisterVehicleScreen(MDScreen):
             size_hint=(None, None),
             size=(300, 150),
             auto_dismiss=True,
-            #template="PopupError",
+            # template="PopupError",
         )
         popup.open()
 
@@ -186,9 +196,10 @@ class RegisterVehicleScreen(MDScreen):
             size_hint=(None, None),
             size=(300, 300),
             auto_dismiss=True,
-            #template="FloatingWindow",
+            # template="FloatingWindow",
         )
         popup.open()
+
     def show_confirmation_popup(self):
         content = BoxLayout(orientation="vertical")
         content.add_widget(MDLabel(text="Vehicle registered successfully!"))
@@ -199,7 +210,7 @@ class RegisterVehicleScreen(MDScreen):
             size_hint=(None, None),
             size=(300, 150),
             auto_dismiss=True,
-            #template="FloatingWindow",
+            # template="FloatingWindow",
         )
         popup.open()
 
@@ -212,7 +223,6 @@ class ViewRegisteredVehiclesScreen(MDScreen):
         # Clear existing entries in the list
         self.ids.registered_vehicles_list.clear_widgets()
         registered_vehicles = fetch.fetch_vehicle_details()
-        print(registered_vehicles)
 
         if registered_vehicles:
             for vehicle_data in registered_vehicles:
@@ -223,7 +233,7 @@ class ViewRegisteredVehiclesScreen(MDScreen):
                     size_hint=(None, None),
                     height="200dp",
                     width="300dp",
-                    pos_hint={"center_x":.5}
+                    pos_hint={"center_x": .5}
                 )
 
                 left_layout = BoxLayout(orientation='vertical', size_hint_x=0.7)
@@ -232,7 +242,7 @@ class ViewRegisteredVehiclesScreen(MDScreen):
                 left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['registration_number']}"))
 
                 # Right side of the card
-                right_layout = BoxLayout(orientation = "vertical", size_hint_x=None, width="100dp")
+                right_layout = BoxLayout(orientation="vertical", size_hint_x=None, width="100dp")
                 # Convert image bytes to source
                 vehicle_image_bytes = BytesIO(vehicle_data['vehicle_image']).read()
                 vehicle_image_bytes_1 = BytesIO(vehicle_data['qr_code_image']).read()
@@ -247,8 +257,6 @@ class ViewRegisteredVehiclesScreen(MDScreen):
 
                 right_layout.add_widget(image_widget)
                 right_layout.add_widget(image_widget_1)
-
-
 
                 card.add_widget(left_layout)
                 card.add_widget(right_layout)
@@ -290,7 +298,7 @@ class RegisterPersonnel_UserScreen(MDScreen):
         user_img = self.u_img
 
         # Validate input (you may add more validation logic)
-        if not all([name, user_id, username, password, confirm_password, security_status,]):
+        if not all([name, user_id, username, password, confirm_password, security_status, ]):
             self.show_error_message("All fields are required.")
             return
 
@@ -299,7 +307,6 @@ class RegisterPersonnel_UserScreen(MDScreen):
             return
         if all([name, user_id, username, password, confirm_password, security_status]) and password == confirm_password:
             fetch.insert_user_data(name, user_id, username, password, security_status, user_img)
-
 
         # Optionally, show a success message or navigate to another screen
 
@@ -320,7 +327,7 @@ class RegisterPersonnel_UserScreen(MDScreen):
         )
         popup.open()
 
-    def show_success_popup(self,  message):
+    def show_success_popup(self, message):
         content = BoxLayout(orientation="vertical")
         content.add_widget(MDLabel(text=message))
 
@@ -338,7 +345,6 @@ class RegisterPersonnel_UserScreen(MDScreen):
 class ViewRegisteredPersonnelScreen(MDScreen):
     def on_pre_enter(self, *args):
         self.load_personnel()
-
 
     def load_personnel(self):
         # Clear existing entries in the list
@@ -368,10 +374,8 @@ class ViewRegisteredPersonnelScreen(MDScreen):
                 # Convert image bytes to source
                 personnel_image_bytes = BytesIO(personnel['user_image']).read()
 
-
                 # Use kivy.core.image.Image to load the image
                 security_image = CoreImage(BytesIO(personnel_image_bytes), ext='png').texture
-
 
                 # Create Kivy Image
                 image_widget = Image(texture=security_image, size=("56dp", "150dp"))
@@ -382,6 +386,7 @@ class ViewRegisteredPersonnelScreen(MDScreen):
 
                 self.ids.registered_personnel.add_widget(card)
 
+
 class ViewStolenVehiclesScreen(MDScreen):
 
     def on_pre_enter(self, *args):
@@ -389,6 +394,7 @@ class ViewStolenVehiclesScreen(MDScreen):
         self.get_stolen_vehicles_data()
 
         # Access the GridLayout
+
     def get_stolen_vehicles_data(self):
         self.ids.stolen_vehicles_grid.clear_widgets()
         stolen_vehicles_data = fetch.get_stolen()
@@ -404,14 +410,12 @@ class ViewStolenVehiclesScreen(MDScreen):
                 pos_hint={"center_x": .5}
             )
 
-
-
             left_layout = BoxLayout(orientation='vertical', size_hint_x=0.7)
-            left_layout.add_widget(MDLabel(text=f"Car owner: {vehicle_data['name']}"))
+            left_layout.add_widget(MDLabel(text=f"Car owner: {vehicle_data['user_name']}"))
             left_layout.add_widget(MDLabel(text=f"User ID: {vehicle_data['user_id']}"))
-            left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['make']}"))
-            left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['model']}"))
-            left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['registration_number']}"))
+            left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['vehicle_make']}"))
+            left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['vehicle_model']}"))
+            left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['plate_number']}"))
 
             # Right side of the card
             right_layout = BoxLayout(orientation="vertical", size_hint_x=None, width="100dp")
@@ -421,16 +425,13 @@ class ViewStolenVehiclesScreen(MDScreen):
             # Use kivy.core.image.Image to load the image
             vehicle_image = CoreImage(BytesIO(vehicle_image_bytes), ext='png').texture
 
-
             # Create Kivy Image
             image_widget = Image(texture=vehicle_image, size=("56dp", "56dp"))
             right_layout.add_widget(image_widget)
 
-
             card.add_widget(left_layout)
             card.add_widget(right_layout)
             self.ids.stolen_vehicles_grid.add_widget(card)
-
 
 
 class ReportStolenVehicleScreen(MDScreen):
@@ -445,7 +446,7 @@ class ReportStolenVehicleScreen(MDScreen):
 
         # Fetch vehicle details by user_id
         vehicle_details = fetch.fetch_stolen_vehicle(user_id, plate_number)
-        #print(vehicle_details)
+        # print(vehicle_details)
         v_make = vehicle_details['make']
         v_model = vehicle_details['model']
         plate_number = vehicle_details['registration_number']
@@ -460,7 +461,7 @@ class ReportStolenVehicleScreen(MDScreen):
             # Optionally, show a success message or navigate to another screen
             self.show_success_message("Vehicle theft reported successfully.")
         # Display vehicle details
-        #self.vehicle_info_label.text = f"Vehicle Information:\n{vehicle_details}"
+        # self.vehicle_info_label.text = f"Vehicle Information:\n{vehicle_details}"
 
     def show_success_message(self, message):
         popup = Popup(title='Success', content=MDLabel(text=message), size_hint=(None, None), size=(300, 150))
@@ -471,60 +472,42 @@ class ReportStolenVehicleScreen(MDScreen):
         popup.open()
 
 
+class Security_Alert_Screen(MDScreen):
 
-class InAppNotificationsScreen(MDScreen):
-    def send_push_notification(self):
-        # Get the push notification message from the admin
-        push_notification_message = "Push notification: Important update!"
+    def __init__(self, **kwargs):
+        super(Security_Alert_Screen, self).__init__(**kwargs)
 
-        # Send push notification to users
-        self.send_push_notification_to_users(push_notification_message)
+    def send_message(self, *args):
+        sen = "admin"
+        msg = self.ids.msg.text
+        receivers = fetch.fetch_personnel_details()
 
-        # Add the new notification to the in-app notifications list
-        self.add_notification(push_notification_message)
+        for i in receivers:
+            receiver = i['user_id']
+            message = msg
+            sender = sen
 
-    def send_in_app_alert(self):
-        # Get the in-app alert message from the admin
-        in_app_alert_message = "In-app alert: Action required from security!"
+            app = MDApp.get_running_app()
+            app.send_notification(sender, receiver, message)
 
-        # Send in-app alert to security
-        self.send_in_app_alert_to_security(in_app_alert_message)
 
-        # Add the new notification to the in-app notifications list
-        self.add_notification(in_app_alert_message)
+class Personal_Notification_Screen(MDScreen):
+    def __init__(self, **kwargs):
+        super(Personal_Notification_Screen, self).__init__(**kwargs)
 
-    def send_push_notification_to_users(self, message):
-        # Implement push notification sending to users using FCM
-        push_service = FCMNotification(api_key="YOUR_FCM_API_KEY")
-        registration_ids = ["device_registration_id_1", "device_registration_id_2"]
-        push_service.notify_multiple_devices(registration_ids=registration_ids, message_title="Notification",
-                                             message_body=message)
+    def send_message(self, *args):
+        # Implement the logic for sending a message
 
-    def send_in_app_alert_to_security(self, message):
-        # Implement in-app alert sending to security using FCM or another service
-        # For iOS, you need to use APNs. This is a simplified example.
-        security_registration_ids = ["security_device_registration_id_1", "security_device_registration_id_2"]
-        self.send_push_notification_to_users(message, registration_ids=security_registration_ids)
+        sender = "admin"
+        n_user_id_input = self.ids.n_user_id.text
+        user_id = fetch.fetch_user_details(n_user_id_input)
+        receiver = user_id['user_id']
 
-    def send_push_notification_to_users(self, message, registration_ids):
-        # This is a simplified example. In a real-world scenario, you'd integrate with APNs for iOS.
-        # Replace 'YOUR_FCM_API_KEY' with your actual FCM API key
-        push_service = FCMNotification(api_key="YOUR_FCM_API_KEY")
-        push_service.notify_multiple_devices(registration_ids=registration_ids, message_title="Notification",
-                                             message_body=message)
+        message = self.ids.message_text.text
 
-    def add_notification(self, message):
-        # Add the new notification to the database or wherever you store notifications
-        # (Implement this based on your actual database structure)
-        # For example: INSERT INTO notifications (user_id, message) VALUES (?, ?)
-
-        # Reload notifications to reflect the latest changes
-        self.load_notifications()
-
-    def load_notifications(self):
-        # Implement loading notifications from the database
-        # (Implement this based on your actual database structure)
-        pass
+        # Call the send_notification method from the app
+        app = MDApp.get_running_app()
+        app.send_notification(sender, receiver, message)
 
 
 class SecurityScreen(MDScreen):
@@ -532,13 +515,210 @@ class SecurityScreen(MDScreen):
 
 
 class UserScreen(MDScreen):
-    pass
+
+    def __init__(self, **kwargs):
+        super(UserScreen, self).__init__(**kwargs)
+
+    def on_pre_enter(self, *args):
+        self.update()
+
+    def update(self, *args):
+        self.ids.qr_card.clear_widgets()
+        app = MDApp.get_running_app()
+        veh = app.get_user_vehicle_qr()
+        image_widget = Image(texture=veh, size=("280dp", "280dp"))
+
+        self.ids.qr_card.add_widget(image_widget)
+
+
+class User_View_Vehicles(MDScreen):
+    def on_pre_enter(self, *args):
+        self.vehicles()
+
+    def vehicles(self, *args):
+        app = MDApp.get_running_app()
+        self.ids.registered_vehicles_list.clear_widgets()
+        registered_vehicles = app.get_user_vehicles()
+
+        if registered_vehicles:
+            for vehicle_data in registered_vehicles:
+                card = MDCard(
+                    orientation='horizontal',
+                    padding="20dp",
+                    spacing="20dp",
+                    size_hint=(None, None),
+                    height="200dp",
+                    width="300dp",
+                    pos_hint={"center_x": .5}
+                )
+
+                left_layout = BoxLayout(orientation='vertical', size_hint_x=0.7)
+                left_layout.add_widget(MDLabel(text=f"Car Make: {vehicle_data['make']}"))
+                left_layout.add_widget(MDLabel(text=f"Car Model: {vehicle_data['model']}"))
+                left_layout.add_widget(MDLabel(text=f"Plate Number: {vehicle_data['registration_number']}"))
+
+                # Right side of the card
+                right_layout = BoxLayout(orientation="vertical", size_hint_x=None, width="100dp")
+                # Convert image bytes to source
+                vehicle_image_bytes = BytesIO(vehicle_data['vehicle_image']).read()
+                vehicle_image_bytes_1 = BytesIO(vehicle_data['qr_code_image']).read()
+
+                # Use kivy.core.image.Image to load the image
+                vehicle_image = CoreImage(BytesIO(vehicle_image_bytes), ext='png').texture
+                qr_image = CoreImage(BytesIO(vehicle_image_bytes_1), ext='png').texture
+
+                # Create Kivy Image
+                image_widget = Image(texture=vehicle_image, size=("56dp", "56dp"))
+                image_widget_1 = Image(texture=qr_image, size=("56dp", "56dp"))
+
+                right_layout.add_widget(image_widget)
+                right_layout.add_widget(image_widget_1)
+
+                card.add_widget(left_layout)
+                card.add_widget(right_layout)
+
+                self.ids.registered_vehicles_list.add_widget(card)
+
+
+class BroadcastScreen(MDScreen):
+    def __init__(self, **kwargs):
+        super(BroadcastScreen, self).__init__(**kwargs)
+
+    def send_message(self, *args):
+        sen = "admin"
+        msg = self.ids.broadcast.text
+        receivers = fetch.fetch_all_user_details()
+        print(receivers)
+
+        for i in receivers:
+            receiver = i['user_id']
+            message = msg
+            sender = sen
+
+            app = MDApp.get_running_app()
+            app.send_notification(sender, receiver, message)
+
+
+class Temporary_Access(MDScreen):
+    def __init__(self, **kwargs):
+        super(Temporary_Access, self).__init__(**kwargs)
+        self.name = 'temp_access'
+        self.file_manager = MDFileManager(
+            exit_manager=self.exit_manager,
+            select_path=self.select_path,
+            preview=True,
+        )
+        self.v_img = ''
+
+    def file_manager_open(self):
+        self.file_manager.show('/')
+
+    def exit_manager(self, *args):
+        self.file_manager.close()
+
+    def select_path(self, path):
+        self.file_manager.close()
+        self.v_img = path
+        print(self.v_img)
+        return self.v_img
+
+    def create_access(self):
+        name = self.ids.name_field.text
+        registration_number = self.ids.registration_number.text
+        img = self.v_img
+        app = MDApp.get_running_app()
+        user_id = app.current_user
+        try:
+            fetch.grant_temporary_access(user_id, registration_number, name, img, expiration_minutes=60)
+            self.display_success_dialog()
+            return True
+        except Exception as e:
+            error_message = str(e)
+            self.display_failure_dialog(error_message)
+            print(f"Error granting temporary access: {error_message}")
+            return error_message
+
+
+
+
+    def display_success_dialog(self):
+        qr_image = self.generate_qr_code()  # Call a function to generate QR code
+        dialog = MDDialog(
+            title="Success!",
+            text="Access granted successfully.",
+            buttons=[
+                MDRaisedButton(
+                    text="Download QR",
+                    on_release=lambda x: self.download_qr(qr_image)
+                )
+            ],
+        )
+        dialog.ids.dialog_content.add_widget(Image(texture=qr_image.texture))
+        dialog.open()
+
+    def display_failure_dialog(self, error_message):
+        dialog = MDDialog(
+            title="Access Failed",
+            text=f"Error: {error_message}",
+            buttons=[
+                MDRaisedButton(
+                    text="OK",
+                    on_release=lambda x: dialog.dismiss()
+                )
+            ]
+        )
+        dialog.open()
+
+    def generate_qr_code(self):
+        # Call the function to generate QR code here and return the Image texture
+        # Replace the following line with your actual QR code generation logic
+        app = MDApp.get_running_app()
+        qr_fetch = fetch.fetch_temporary_access(app.current_user)
+        print(qr_fetch)
+        if qr_fetch:
+            vehicle_image_bytes = BytesIO(qr_fetch['qr_code_blob']).read()
+            qr_image = CoreImage(BytesIO(vehicle_image_bytes), ext='png').texture
+            return qr_image
+        # return Image(source="path_to_your_qr_code_image.png").texture
+
+    def download_qr(self, qr_image):
+        # Save the QR code to the device
+        qr_image.texture.save("downloaded_qr_code.png")
 
 
 class MyApp(MDApp):
     def on_start(self):
         # Initialize current_user_type attribute
         self.current_user_type = None
+        self.current_user = None
+        self.message_list = None
+        Clock.schedule_once(self.load_notifications)
+
+    def open_menu(self, button):
+        menu_items = [
+            {"viewclass": "MenuContent", "text": "Broadcast Notification"},
+            {"viewclass": "MenuContent", "text": "Private Notification"},
+            {"viewclass": "MenuContent", "text": "Personnel Notification"},
+            {"viewclass": "MenuContent", "text": "Logout"},
+        ]
+        menu = MDDropdownMenu(
+            caller=button,
+            items=menu_items,
+            position="auto",
+            width_mult=4,
+        )
+        menu.open()
+
+    def handle_menu_item(self, item_text):
+        if item_text == "Broadcast Notification":
+            self.root.current = ''
+        elif item_text == "Private Notification":
+            self.root.current = ''
+        elif item_text == "Personnel Notification":
+            self.root.current = ''
+        elif item_text == "logout":
+            self.root.current = 'login'
+
     def build(self):
         # Set window size to simulate a mobile device
 
@@ -560,9 +740,13 @@ class MyApp(MDApp):
         register_personnel_screen = RegisterPersonnel_UserScreen()
         view_stolen_vehicles_screen = ViewStolenVehiclesScreen()
         report_stolen_vehicle_screen = ReportStolenVehicleScreen()
-        in_app_notifications_screen = InAppNotificationsScreen()
+        BS = BroadcastScreen()
+        PNS = Personal_Notification_Screen()
+        SAS = Security_Alert_Screen()
         security_screen = SecurityScreen()
         user_screen = UserScreen()
+        user_view_vehicle = User_View_Vehicles()
+        temp_access = Temporary_Access()
 
         screen_manager.add_widget(Login_screen)
         screen_manager.add_widget(admin_screen)
@@ -575,7 +759,11 @@ class MyApp(MDApp):
         screen_manager.add_widget(register_personnel_screen)
         screen_manager.add_widget(view_stolen_vehicles_screen)
         screen_manager.add_widget(report_stolen_vehicle_screen)
-        screen_manager.add_widget(in_app_notifications_screen)
+        screen_manager.add_widget(BS)
+        screen_manager.add_widget(SAS)
+        screen_manager.add_widget(PNS)
+        screen_manager.add_widget(user_view_vehicle)
+        screen_manager.add_widget(temp_access)
 
         return screen_manager
 
@@ -583,6 +771,7 @@ class MyApp(MDApp):
         try:
             # Call the function to get user credentials
             credentials = get_user_credentials(username, password)
+            self.current_user = credentials.get('user_id')
 
             if credentials:
                 # Check the 'usertype' to determine the appropriate screen
@@ -591,9 +780,10 @@ class MyApp(MDApp):
                 if usertype == 'admin':
                     self.root.current = 'admin'
                 elif usertype == 'personnel':
-                    self.root.current = 'admin'
+                    self.root.current = 'security'
                 elif usertype == 'user':
                     self.root.current = 'user'
+                    Clock.schedule_once(self.load_notifications, 0)
             else:
                 print("Invalid username or password.")
 
@@ -607,5 +797,89 @@ class MyApp(MDApp):
             self.root.current = 'security'
         elif self.current_user_type == 'user':
             self.root.current = 'user'
+
+    def get_user_vehicle_qr(self):
+        user_vehicle = fetch.fetch_user_vehicle_details(self.current_user)
+        for i in user_vehicle:
+            vehicle_image_bytes_1 = BytesIO(i['qr_code_image']).read()
+            qr_image = CoreImage(BytesIO(vehicle_image_bytes_1), ext='png').texture
+
+            return qr_image
+
+    def get_user_vehicles(self):
+        user_vehicles = fetch.fetch_user_vehicle_details(self.current_user)
+        return user_vehicles
+
+    def load_notifications(self, dt):
+        # Load notifications from the database
+        if self.current_user_type == 'personnel':
+
+            self.new_notifications = fetch.fetch_security_notifications(self.current_user)
+
+            self.display_new_notifications()
+
+            # Schedule periodic check for new notifications
+            Clock.schedule_interval(self.periodic_check_notifications, 30)  # Check every 30 seconds
+        elif self.current_user_type == 'user':
+            self.new_notifications = fetch.fetch_user_notifications(self.current_user)
+            self.display_new_notifications()
+
+            Clock.schedule_interval(self.periodic_check_notifications, 30)
+
+    def periodic_check_notifications(self, *args):
+        # Check for new notifications periodically
+        if self.current_user_type == 'user':
+            new_notifications = fetch.fetch_user_notifications(self.current_user)
+            for notification in new_notifications:
+                if notification not in self.new_notifications:
+                    self.new_notifications.append(notification)
+                    self.display_notification(notification)
+
+        elif self.current_user_type == 'personnel':
+            new_notifications = fetch.fetch_security_notifications(self.current_user)
+            for notification in new_notifications:
+                if notification not in self.new_notifications:
+                    self.new_notifications.append(notification)
+                    self.display_notification(notification)
+
+    def send_notification(self, sender, receiver_type, message):
+        fetch.insert_user_notification(sender, receiver_type, message)
+        # self.refresh_notifications()
+
+    def display_new_notifications(self):
+        # Display only new notifications
+        for notification in self.new_notifications:
+            self.display_notification(notification)
+
+    def display_notification(self, notification):
+        print(notification)
+        # Display notification as a popup on the respective screen
+        if notification:
+            dialog = MDDialog(
+                title=f"New Notification",
+                text=notification['message'],
+                buttons=[
+                    MDRaisedButton(
+                        text="OK",
+                        on_release=lambda x: (self.handle_notification_seen(notification['id']), dialog.dismiss())
+                    )
+                ]
+            )
+            dialog.open()
+
+    def handle_notification_seen(self, notification_id):
+        # Update the 'seen' status of the notification
+        fetch.update_notification_seen(notification_id)
+
+    def refresh_notifications(self):
+        # Reload notifications to reflect the latest changes
+        self.load_notifications()
+
+    def get_username(self, user_id):
+        # Retrieve username based on the user_id
+        # Implement this based on your actual database structure
+        return "admin"  # Replace with the actual logic
+
+
 if __name__ == "__main__":
     MyApp().run()
