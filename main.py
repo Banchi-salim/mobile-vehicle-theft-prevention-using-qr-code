@@ -609,9 +609,12 @@ class Temporary_Access(MDScreen):
             preview=True,
         )
         self.v_img = ''
+        self.t_name = ''
+        self.registration_number = ''
+
 
     def file_manager_open(self):
-        self.file_manager.show('/')
+        self.file_manager.show('C:/Users/Salim_Banchi/Downloads/')
 
     def exit_manager(self, *args):
         self.file_manager.close()
@@ -623,13 +626,13 @@ class Temporary_Access(MDScreen):
         return self.v_img
 
     def create_access(self):
-        name = self.ids.name_field.text
-        registration_number = self.ids.registration_number.text
+        self.t_name = self.ids.name_field.text
+        self.registration_number = self.ids.registration_number.text
         img = self.v_img
         app = MDApp.get_running_app()
         user_id = app.current_user
         try:
-            fetch.grant_temporary_access(user_id, registration_number, name, img, expiration_minutes=60)
+            fetch.grant_temporary_access(user_id, self.registration_number, self.t_name, img, expiration_minutes=60)
             self.display_success_dialog()
             return True
         except Exception as e:
@@ -642,18 +645,29 @@ class Temporary_Access(MDScreen):
 
 
     def display_success_dialog(self):
-        qr_image = self.generate_qr_code()  # Call a function to generate QR code
+        #qr_image = self.generate_qr_code()  # Call a function to generate QR code
+
+
+        # Create a BoxLayout for the dialog content
+        content_layout = BoxLayout(orientation='vertical')
+
+        # Create an Image widget with the generated QR code texture
+        #qr_image_widget = Image(texture=qr_image.texture)
+
+        # Add the Image widget to the content layout
+        #content_layout.add_widget(qr_image_widget)
         dialog = MDDialog(
             title="Success!",
             text="Access granted successfully.",
             buttons=[
                 MDRaisedButton(
                     text="Download QR",
-                    on_release=lambda x: self.download_qr(qr_image)
+                    on_release=lambda x: self.download_qr(),
                 )
             ],
+            items=[content_layout]
         )
-        dialog.ids.dialog_content.add_widget(Image(texture=qr_image.texture))
+        #dialog.content.add_widget(Image(texture=qr_image.texture))
         dialog.open()
 
     def display_failure_dialog(self, error_message):
@@ -671,9 +685,10 @@ class Temporary_Access(MDScreen):
 
     def generate_qr_code(self):
         # Call the function to generate QR code here and return the Image texture
-        # Replace the following line with your actual QR code generation logic
+
         app = MDApp.get_running_app()
-        qr_fetch = fetch.fetch_temporary_access(app.current_user)
+        user_id = app.current_user
+        qr_fetch = fetch.fetch_temporary_access(user_id, self.t_name)
         print(qr_fetch)
         if qr_fetch:
             vehicle_image_bytes = BytesIO(qr_fetch['qr_code_blob']).read()
@@ -681,9 +696,14 @@ class Temporary_Access(MDScreen):
             return qr_image
         # return Image(source="path_to_your_qr_code_image.png").texture
 
-    def download_qr(self, qr_image):
+    def download_qr(self):
         # Save the QR code to the device
-        qr_image.texture.save("downloaded_qr_code.png")
+        qr_image_blob = fetch.fetch_temporary_access(self.registration_number, self.t_name)
+        print(qr_image_blob)
+        qr_image_io = BytesIO(qr_image_blob['qr_code_blob']).read()
+        qr_image = CoreImage(BytesIO(qr_image_io), ext='png').texture
+        qr_image.save("C:/Users/Salim_Banchi/Downloads/temp_qr_code.png")
+
 
 
 class MyApp(MDApp):
@@ -879,6 +899,8 @@ class MyApp(MDApp):
         # Retrieve username based on the user_id
         # Implement this based on your actual database structure
         return "admin"  # Replace with the actual logic
+
+
 
 
 if __name__ == "__main__":

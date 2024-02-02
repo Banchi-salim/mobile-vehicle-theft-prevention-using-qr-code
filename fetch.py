@@ -492,9 +492,8 @@ def grant_temporary_access(user_id, registration_number, name, user_img, expirat
     # Calculate expiration time
     expiration_time = datetime.now() + timedelta(minutes=expiration_minutes)
 
-    # Encode a reference to the image into the QR code
-    image_reference = user_img
-    qr_data = f"{user_id}-{registration_number}-{name}-{image_reference}"
+    #create data qr code
+    qr_data = f"{user_id}-{registration_number}-{name}-"
     qr_image = qrcode.make(qr_data)
 
     with open(user_img, 'rb') as image_file:
@@ -508,8 +507,8 @@ def grant_temporary_access(user_id, registration_number, name, user_img, expirat
     # Save the image reference and QR code to the database
     try:
         query = """INSERT INTO temporary_access (user_id, registration_number, name, expiration_time, 
-                    user_img_url, qr_code_blob, user_img) VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-        cursor.execute(query, (user_id, registration_number, name, expiration_time, image_reference, qr_code_blob, user_image_blob,))
+            qr_code_blob, user_img) VALUES (%s, %s, %s, %s, %s, %s)"""
+        cursor.execute(query, (user_id, registration_number, name, expiration_time, qr_code_blob, user_image_blob,))
         conn.commit()
         print("Temporary access granted successfully.")
     except Exception as e:
@@ -521,14 +520,16 @@ def grant_temporary_access(user_id, registration_number, name, user_img, expirat
             conn.close()
 
 
-def fetch_temporary_access(registration_number):
+def fetch_temporary_access(registration_number, name):
     conn = connect()
     cursor = conn.cursor(dictionary=True)
     try:
-        query = """ SELECT qr_code_blob FROM temporary_access WHERE registration_number = %s        
+        query = """ SELECT qr_code_blob FROM temporary_access WHERE registration_number = %s AND name = %s
+        
         """
-        cursor.execute(query, (registration_number,))
+        cursor.execute(query, (registration_number, name,))
         result = cursor.fetchone()  # Assuming you expect only one result
+        print(result)
         return result
     except Exception as e:
         err = f"{e}"
