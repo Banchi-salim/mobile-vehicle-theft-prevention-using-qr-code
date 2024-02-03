@@ -793,7 +793,8 @@
         BoxLayout:
             orientation:'vertical'
             id : logs_table
-            pos_hint:{'center_x': 0.5, 'center_y': 0.5}
+            size_hint_y: None
+            height: self.minimum_height
 
         MDRaisedButton:
             text: 'Load Security Logs'
