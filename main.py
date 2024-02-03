@@ -3,6 +3,8 @@ from kivy.clock import Clock
 import mysql.connector
 from kivy.core.image import Image as CoreImage
 from kivy.core.image import ImageLoader, Texture
+from kivy.uix.scrollview import ScrollView
+from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.menu import MDDropdownMenu
@@ -10,7 +12,7 @@ from kivymd.uix.menu import MDDropdownMenu
 import fetch
 from fetch import get_user_credentials, fetch_user_details, save_vehicle_details
 from kivy.lang import Builder
-from kivy.metrics import dp
+from kivy.metrics import dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
@@ -612,7 +614,6 @@ class Temporary_Access(MDScreen):
         self.t_name = ''
         self.registration_number = ''
 
-
     def file_manager_open(self):
         self.file_manager.show('C:/Users/Salim_Banchi/Downloads/')
 
@@ -641,21 +642,17 @@ class Temporary_Access(MDScreen):
             print(f"Error granting temporary access: {error_message}")
             return error_message
 
-
-
-
     def display_success_dialog(self):
-        #qr_image = self.generate_qr_code()  # Call a function to generate QR code
-
+        # qr_image = self.generate_qr_code()  # Call a function to generate QR code
 
         # Create a BoxLayout for the dialog content
         content_layout = BoxLayout(orientation='vertical')
 
         # Create an Image widget with the generated QR code texture
-        #qr_image_widget = Image(texture=qr_image.texture)
+        # qr_image_widget = Image(texture=qr_image.texture)
 
         # Add the Image widget to the content layout
-        #content_layout.add_widget(qr_image_widget)
+        # content_layout.add_widget(qr_image_widget)
         dialog = MDDialog(
             title="Success!",
             text="Access granted successfully.",
@@ -667,7 +664,7 @@ class Temporary_Access(MDScreen):
             ],
             items=[content_layout]
         )
-        #dialog.content.add_widget(Image(texture=qr_image.texture))
+        # dialog.content.add_widget(Image(texture=qr_image.texture))
         dialog.open()
 
     def display_failure_dialog(self, error_message):
@@ -705,6 +702,42 @@ class Temporary_Access(MDScreen):
         qr_image.save("C:/Users/Salim_Banchi/Downloads/temp_qr_code.png")
 
 
+class SecurityLogsScreen(MDScreen):
+
+    def __init__(self, **kwargs):
+        super(SecurityLogsScreen, self).__init__(**kwargs)
+
+    def load_security_logs(self):
+        # Fetch security logs from the database
+        logs = fetch.fetch_security_logs()
+
+        # Create MDDataTable
+        data_table = MDDataTable(
+            column_data=[
+                ("Timestamp", dp(30)),
+                ("User ID", dp(30)),
+                ("Event Type", dp(30)),
+                ("Login Time", dp(30)),
+                ("Logout Time", dp(30)),
+            ],
+            row_data=logs,
+            size_hint=(1, None),
+            height=dp(450),
+        )
+
+        # Create ScrollView with MDDataTable
+        scroll_view = ScrollView(do_scroll_x=True,
+                                 do_scroll_y=True,
+                                 pos_hint={'center_x': 0.5, 'center_y': 0.5}
+                                 )
+        scroll_view.add_widget(data_table)
+
+        # Create a BoxLayout and add ScrollView to it
+        layout = BoxLayout(orientation='vertical')
+        layout.add_widget(scroll_view)
+
+        self.ids.logs_table.add_widget(layout)
+
 
 class MyApp(MDApp):
     def on_start(self):
@@ -724,8 +757,8 @@ class MyApp(MDApp):
         menu = MDDropdownMenu(
             caller=button,
             items=menu_items,
-            position="auto",
-            width_mult=4,
+            position="center",
+            width_mult=2,
         )
         menu.open()
 
@@ -767,6 +800,7 @@ class MyApp(MDApp):
         user_screen = UserScreen()
         user_view_vehicle = User_View_Vehicles()
         temp_access = Temporary_Access()
+        personel_logs = SecurityLogsScreen()
 
         screen_manager.add_widget(Login_screen)
         screen_manager.add_widget(admin_screen)
@@ -784,6 +818,7 @@ class MyApp(MDApp):
         screen_manager.add_widget(PNS)
         screen_manager.add_widget(user_view_vehicle)
         screen_manager.add_widget(temp_access)
+        screen_manager.add_widget(personel_logs)
 
         return screen_manager
 
@@ -899,8 +934,6 @@ class MyApp(MDApp):
         # Retrieve username based on the user_id
         # Implement this based on your actual database structure
         return "admin"  # Replace with the actual logic
-
-
 
 
 if __name__ == "__main__":

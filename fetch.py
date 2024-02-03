@@ -493,7 +493,7 @@ def grant_temporary_access(user_id, registration_number, name, user_img, expirat
     expiration_time = datetime.now() + timedelta(minutes=expiration_minutes)
 
     #create data qr code
-    qr_data = f"{user_id}-{registration_number}-{name}-"
+    qr_data = f"car owner id:{user_id}\ncar registration number{registration_number}\n accessor's name:{name}"
     qr_image = qrcode.make(qr_data)
 
     with open(user_img, 'rb') as image_file:
@@ -534,3 +534,60 @@ def fetch_temporary_access(registration_number, name):
     except Exception as e:
         err = f"{e}"
         return err
+
+def log_login_event(user_id):
+    conn = connect()
+    cursor = conn.cursor()
+    try:
+        query = """
+            INSERT INTO security_log (user_id, event_type, login_time)
+            VALUES (%s, 'login', CURRENT_TIMESTAMP, %s)
+        """
+        cursor.execute(query, (user_id,))
+        conn.commit()
+    except Error as e:
+        print(f"Error logging login event: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+def log_logout_event(user_id):
+    conn = connect()
+    cursor = conn.cursor()
+    try:
+        query = """
+            UPDATE security_log
+            SET logout_time = CURRENT_TIMESTAMP, event_type = 'logout' WHERE user_id = %s AND logout_time IS NULL
+        """
+        cursor.execute(query, (user_id,))
+        conn.commit()
+    except Error as e:
+        print(f"Error logging logout event: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def fetch_security_logs():
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Fetch security logs with user details
+        query = """
+            SELECT sl.timestamp, sl.user_id, sl.event_type, sl.login_time, sl.logout_time, p.name
+            FROM security_logs sl
+            LEFT JOIN personnel p ON sl.user_id = p.user_id
+            ORDER BY sl.timestamp DESC
+        """
+        cursor.execute(query)
+        logs = cursor.fetchall()
+
+        return logs
+
+    except mysql.connector.Error as e:
+        print(f"Error fetching security logs: {e}")
+        return []
+
+    finally:
+        cursor.close()
+        conn.close()

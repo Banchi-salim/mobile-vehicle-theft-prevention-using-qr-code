@@ -171,6 +171,17 @@
                         text:"Report Stolen Vehicles"
                         halign:"center"
 
+                MDCard:
+                    size_hint: 1, None
+                    height:dp(50)
+                    radius:dp(25)
+                    elevation:dp(0.15)
+                    padding: dp(20)
+                    on_release: app.root.current = "security_logs"
+                    MDLabel:
+                        text:"View Security Logs"
+                        halign:"center"
+
 <ScanQRScreen>:
     name: "scan_qr"
 
@@ -762,5 +773,31 @@
                     text:"submit"
                     on_release: root.create_access()
 
+
+
+# SecurityLogsScreen
+
+<SecurityLogsScreen>:
+    name: 'security_logs'
+    orientation: 'vertical'
+
+    FloatLayout:
+        orientation: "vertical"
+        id: logs
+        MDTopAppBar:
+            title: 'Security Logs'
+            md_bg_color: app.theme_cls.primary_color
+            pos_hint: {'center_y': 0.9}
+            left_action_items: [["arrow-left", lambda x: app.go_back()]]
+
+        BoxLayout:
+            orientation:'vertical'
+            id : logs_table
+            pos_hint:{'center_x': 0.5, 'center_y': 0.5}
+
+        MDRaisedButton:
+            text: 'Load Security Logs'
+            pos_hint: {'center_x': 0.5}
+            on_release: root.load_security_logs()
 
 
