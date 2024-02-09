@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-
 import mysql.connector
-import qrcode
 from MySQLdb import Error
-from PIL import Image
+import base64
+import qrcode
 from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
 
 
 def connect():
@@ -62,19 +62,27 @@ def save_vehicle_details(user_id, car_make, car_model, plate_number, car_image_p
     conn = connect()
     cursor = conn.cursor(dictionary=True)
 
+    with open(car_image_path, 'rb') as image_file:
+        #image = Image.open(image_file)
+        #resized_image = image.resize((700, 700))
+        #vehicle_image_blob = resized_image.tobytes()
+        vehicle_image_blob = image_file.read()
+
+
+    query = "SELECT name FROM user WHERE user_id = %s"
+    cursor.execute(query, (user_id,))
+    name = cursor.fetchone()
     # Generate QR code
-    qr_data = f"User ID: {user_id}\nCar Make: {car_make}\nCar Model: {car_model}\nPlate Number: {plate_number}"
+    qr_data = f"Name: {name['name']}\nUser ID: {user_id}"#\nCar Make: {car_make}\nCar Model: {car_model}\nPlate Number: {plate_number}
     qr_code = qrcode.make(qr_data)
+    qr_code.save("C:/Users/Mr Selim/Downloads/qrcode.png")
+
 
     # Convert the QR code image to bytes
     qr_code_bytes = BytesIO()
     qr_code.save(qr_code_bytes)
     qr_code_blob = qr_code_bytes.getvalue()
     try:
-        # Convert the vehicle image to bytes
-        with open(car_image_path, 'rb') as image_file:
-            vehicle_image_blob = image_file.read()
-
         # Insert data into the vehicles table
         cursor.execute("""
             INSERT INTO vehicle (user_id, make, model, registration_number, vehicle_image, qr_code_image)
@@ -540,8 +548,8 @@ def log_login_event(user_id):
     cursor = conn.cursor()
     try:
         query = """
-            INSERT INTO security_log (user_id, event_type, login_time)
-            VALUES (%s, 'login', CURRENT_TIMESTAMP, %s)
+            INSERT INTO security_logs (user_id, event_type, login_time)
+            VALUES (%s, 'login', CURRENT_TIMESTAMP)
         """
         cursor.execute(query, (user_id,))
         conn.commit()
@@ -556,7 +564,7 @@ def log_logout_event(user_id):
     cursor = conn.cursor()
     try:
         query = """
-            UPDATE security_log
+            UPDATE security_logs
             SET logout_time = CURRENT_TIMESTAMP, event_type = 'logout' WHERE user_id = %s AND logout_time IS NULL
         """
         cursor.execute(query, (user_id,))
@@ -581,7 +589,7 @@ def fetch_security_logs():
         """
         cursor.execute(query)
         logs = cursor.fetchall()
-
+        print(logs)
         return logs
 
     except mysql.connector.Error as e:
@@ -591,3 +599,21 @@ def fetch_security_logs():
     finally:
         cursor.close()
         conn.close()
+
+
+def fetch_vehicle_on_scan(user_id):
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        query = "SELECT * FROM vehicle WHERE user_id = %s"#AND registration_number = %s
+        cursor.execute(query, (user_id,))
+        vehicle_info = cursor.fetchall()
+        #print(vehicle_info)
+
+        return vehicle_info
+
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        cursor.close()

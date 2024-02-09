@@ -1,4 +1,5 @@
 import os
+import plyer
 from kivy.clock import Clock
 import mysql.connector
 from kivy.core.image import Image as CoreImage
@@ -8,6 +9,8 @@ from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.menu import MDDropdownMenu
+from kivy_garden.zbarcam import ZBarCam
+from kivymd.uix.snackbar import Snackbar
 
 import fetch
 from fetch import get_user_credentials, fetch_user_details, save_vehicle_details
@@ -21,7 +24,7 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.button import MDRaisedButton
-from kivy.uix.image import Image
+from kivy.uix.image import Image, AsyncImage
 from kivy.uix.camera import Camera
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
@@ -29,11 +32,18 @@ from kivy.uix.button import Button
 from kivy.clock import Clock
 from io import BytesIO
 import qrcode
-from pyfcm import FCMNotification
+from kivy.core.window import Window
+# from pyfcm import FCMNotification
 from pyzbar.pyzbar import decode
 from qrcode.image.pil import PilImage
 # from PIL import Image as img
-from kivy.core.window import Window
+import platform
+
+if platform.system().lower() == 'android':
+    from kivy.core.camera import CameraAndroid
+else:
+    from kivy.core.camera.camera_opencv import CameraOpenCV
+
 from kivymd.uix.toolbar import MDTopAppBar
 
 Builder.load_file('main.kv')
@@ -51,8 +61,119 @@ class ScanQRScreen(MDScreen):
     def __init__(self, **kwargs):
         super(ScanQRScreen, self).__init__(**kwargs)
         self.qr_code_result = None
+        self.vehicle_details = None
+
+
+    def on_symbols(self, instance, symbols):
+        if not symbols == "":
+            for symbol in symbols:
+                print(symbol.data.decode())
+                qr_data = symbol.data.decode()
+                qr_lines = qr_data.split("\n")
+                print(qr_lines)
+                if qr_lines:
+                    user_id_line = next((item for item in qr_data if item.startswith("User ID:")), None)
+                    user_id  = [item.replace("User ID:", "").strip() for item in qr_data.split("\n") if
+                                                    item.startswith("User ID") ]
+                    #user_id = user_id_line.replace("User ID:", "").strip()
+                    #print(user_id)
+                    self.vehicle_details = fetch.fetch_vehicle_on_scan(user_id[0])
+                    print(self.vehicle_details)
+                    Vehicle_ID = self.vehicle_details[0]['vehicle_id']
+                    User_ID = self.vehicle_details[0]['user_id']
+                    Make = self.vehicle_details[0]['make']
+                    Model = self.vehicle_details[0]['model']
+                    Registration_Number = self.vehicle_details[0]['registration_number']
+
+                content = BoxLayout(orientation='vertical')
+                card = MDCard(
+                    orientation='horizontal',
+                    padding="20dp",
+                    spacing="20dp",
+                    size_hint=(None, None),
+                    height="200dp",
+                    width="300dp",
+                    pos_hint={"center_x": .5}
+                )
+
+                dialog_text = (
+                    f"Vehicle ID: {Vehicle_ID}\n"
+                    f"UserID: {User_ID}\n"
+                    f"Make: {Make}\n"
+                    f"Model: {Model}\n"
+                    f"Registration Number: {Registration_Number}"
+                )
+
+                dialog_content = BoxLayout(orientation="vertical")
+
+                content.add_widget(MDLabel(text=dialog_text))
+               #content.add_widget(AsyncImage(source=BytesIO(vehicle_details[0]['vehicle_image_blob'])))
+                dialog = MDDialog(
+                    title="QR Code Result",
+                    text=dialog_text,
+                    buttons=[
+                        MDRaisedButton(text="Close",
+                               on_release= lambda x: dialog.dismiss()),
+                    ]
+                )
+                dialog.open()
+                dialog_content.add_widget(dialog)
+
 
     def scan_qr_code(self):
+        try:
+            # Use Plyer's Camera API for Android
+            if platform.system().lower() == 'android':
+                result = plyer.camera.take_picture()
+            else:
+                # Use Kivy's CameraOpencv for other platforms
+                camera = CameraOpenCV(index=0, resolution=(640, 480), play=True)
+                result = camera.start()
+
+            if result:
+                decoded_qr = self.decode_qr_code(result.pixels)
+                if decoded_qr:
+                    self.qr_code_result = decoded_qr
+                    self.show_qr_result_popup()
+        except Exception as e:
+            print(f"Error scanning QR code: {e}")
+
+    def decode_qr_code(self, image_pixels):
+        image_bytes = BytesIO(image_pixels)
+        qr_code = qrcode.QRCode()
+        qr_code.add_data(image_bytes)
+        qr_code.make(fit=True)
+        return qr_code.make_image(fill_color="black", back_color="white").get_string()
+
+    def show_qr_result_popup(self):
+        content = BoxLayout(orientation="vertical")
+        content.add_widget(Label(text="QR Code Result"))
+        content.add_widget(Image(texture=self.camera.export_as_texture()))
+        content.add_widget(Label(text=self.qr_code_result))
+
+        popup = Popup(
+            title="QR Code Result",
+            content=content,
+            size_hint=(None, None),
+            size=(400, 400),
+            auto_dismiss=True,
+        )
+        popup.open()
+
+    def show_error_popup(self, message):
+        content = BoxLayout(orientation="vertical")
+        content.add_widget(Label(text=message))
+
+        popup = Popup(
+            title="Error",
+            content=content,
+            size_hint=(None, None),
+            size=(300, 200),
+            auto_dismiss=True,
+        )
+        popup.open()
+
+    """def scan_qr_code(self):
         image_path = "C:/Users/Salim_Banchi/PycharmProjects/mobile-vehicle-theft-prevention-using-qr-code/untitled.png"
 
         try:
@@ -63,9 +184,9 @@ class ScanQRScreen(MDScreen):
             else:
                 self.show_error_popup("No QR code found!")
         except Exception as e:
-            self.show_error_popup(f"Error: {str(e)}")
+            self.show_error_popup(f"Error: {str(e)}")"""
 
-    def decode_qr_code(self, image_path):
+    """def decode_qr_code(self, image_path):
         # Open the image file using the Image class directly
         with Image.open(image_path) as img:
             # Convert the image to grayscale
@@ -77,7 +198,7 @@ class ScanQRScreen(MDScreen):
             # Return the first decoded object (assuming only one QR code in the image)
             return decoded_objects[0].data.decode("utf-8")
         else:
-            return None
+            return None 
 
     def show_qr_result_popup(self):
         content = BoxLayout(orientation="vertical")
@@ -104,7 +225,7 @@ class ScanQRScreen(MDScreen):
             size=(300, 150),
             auto_dismiss=True,
         )
-        popup.open()
+        popup.open()"""
 
 
 class RegisterVehicleScreen(MDScreen):
@@ -145,7 +266,7 @@ class RegisterVehicleScreen(MDScreen):
 
         # Fetch user details based on the username
         user_details = fetch_user_details(user_id)
-        print(user_details)
+        #print(user_details)
 
         if user_details is None:
             self.show_error_popup("User not found.")
@@ -615,7 +736,7 @@ class Temporary_Access(MDScreen):
         self.registration_number = ''
 
     def file_manager_open(self):
-        self.file_manager.show('C:/Users/Salim_Banchi/Downloads/')
+        self.file_manager.show('/')
 
     def exit_manager(self, *args):
         self.file_manager.close()
@@ -711,6 +832,21 @@ class SecurityLogsScreen(MDScreen):
         # Fetch security logs from the database
         logs = fetch.fetch_security_logs()
 
+        # Ensure logs is a list of dictionaries
+        if not all(isinstance(log, dict) for log in logs):
+            # Handle the case where logs is not in the expected format
+            print("Error: Security logs data is not in the expected format.")
+            return
+
+        # Convert dictionaries to lists
+        logs_as_lists = [[log.get('timestamp', ''),
+                          log.get('user_id', ''),
+                          log.get('event_type', ''),
+                          log.get('login_time', ''),
+                          log.get('logout_time', ''),
+                          log.get('name', '')]
+                         for log in logs]
+
         # Create MDDataTable
         data_table = MDDataTable(
             column_data=[
@@ -719,22 +855,19 @@ class SecurityLogsScreen(MDScreen):
                 ("Event Type", dp(30)),
                 ("Login Time", dp(30)),
                 ("Logout Time", dp(30)),
+                ("Name", dp(30))
             ],
-            row_data=logs,
+            row_data=logs_as_lists,
             size_hint=(1, None),
             height=dp(450),
         )
 
         # Create ScrollView with MDDataTable
-        scroll_view = ScrollView(do_scroll_x=True,
-                                 do_scroll_y=True,
-                                 pos_hint={'center_x': 0.5, 'center_y': 0.5}
-                                 )
-        scroll_view.add_widget(data_table)
+
 
         # Create a BoxLayout and add ScrollView to it
         layout = BoxLayout(orientation='vertical')
-        layout.add_widget(scroll_view)
+        layout.add_widget(data_table)
 
         self.ids.logs_table.add_widget(layout)
 
@@ -836,6 +969,7 @@ class MyApp(MDApp):
                     self.root.current = 'admin'
                 elif usertype == 'personnel':
                     self.root.current = 'security'
+                    fetch.log_login_event(self.current_user)
                 elif usertype == 'user':
                     self.root.current = 'user'
                     Clock.schedule_once(self.load_notifications, 0)
@@ -853,6 +987,10 @@ class MyApp(MDApp):
         elif self.current_user_type == 'user':
             self.root.current = 'user'
 
+    def logout(self):
+        self.root.current = 'login'
+        if self.current_user_type == 'personnel':
+            fetch.log_logout_event(self.current_user)
     def get_user_vehicle_qr(self):
         user_vehicle = fetch.fetch_user_vehicle_details(self.current_user)
         for i in user_vehicle:
